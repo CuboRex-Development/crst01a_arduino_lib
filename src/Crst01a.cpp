@@ -75,6 +75,7 @@ bool Crst01a::Init(void){
 	
 	if(false == l_initFlg){
 	
+		SERIAL_CRST01A.setFIFOSize(256);  // 256バイトに変更
 		SERIAL_CRST01A.begin(BAUD_RATE, SERIAL_8N1);		// 車両コントローラとの通信
 	
 		// 定期割り込み設定
