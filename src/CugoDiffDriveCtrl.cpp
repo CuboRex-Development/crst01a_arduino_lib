@@ -38,8 +38,8 @@ void CuGoDiffDriveCtrl::Init(HardwareSerial* pSerial){
 
 
 // 前後進制御
-// 引数：targetDistance：目標走行距離(m)
-// 　　　targetSpeed：目標速度(m/s)
+// 引数：targetDistance：目標走行距離(m、-で後進)
+// 　　　targetSpeed：目標速度(m/s、-で後進)
 // 戻り値：エラー発生や速度の取得失敗でfalse
 bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 	
@@ -56,10 +56,16 @@ bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 	}
 
 	// 時間の計算
-	runTime = targetDistance / targetSpeed;
+	runTime = abs(targetDistance / targetSpeed);
 
 	// 走行開始
-	SetMoveSpeed((int16_t)(targetSpeed * 1000), 0);
+	if(0 < targetDistance){
+		SetMoveSpeed((int16_t)(targetSpeed * 1000), 0);
+	}
+	else{
+		SetMoveSpeed((int16_t)(-targetSpeed * 1000), 0);
+	}
+	
 	if(!cugoCommon.Wait((uint32_t)(runTime * 1000))){
 		PC_PRINTLN(F("##WARNING::エラーが発生しました。走行を中断します。##"));
 		return false;
@@ -94,8 +100,8 @@ bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 
 
 // 旋回制御
-// 引数：targetDegree：目標角度(deg)
-// 　　　targetSpeed：目標速度(deg/s)
+// 引数：targetDegree：目標角度(deg、+で半時計周り、-で時計回り)
+// 　　　targetSpeed：目標速度(deg/s、-で反転)
 // 戻り値：エラー発生や速度の取得失敗でfalse
 bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 
@@ -112,10 +118,16 @@ bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 	}
 
 	// 時間の計算
-	runTime = targetDegree / targetSpeed;
+	runTime = abs(targetDegree / targetSpeed);
 
 	// 走行開始
-	SetMoveSpeed(0, (int16_t)(targetSpeed * 1000 * (2*M_PI) / 360));
+	if(0 < targetDegree){
+		SetMoveSpeed(0, (int16_t)(targetSpeed * 1000 * (2*M_PI) / 360));
+	}
+	else{
+		SetMoveSpeed(0, (int16_t)(-targetSpeed * 1000 * (2*M_PI) / 360));
+	}
+	
 	if(!cugoCommon.Wait((uint32_t)(runTime * 1000))){
 		PC_PRINTLN(F("##WARNING::エラーが発生しました。走行を中断します。##"));
 		return false;
@@ -151,8 +163,8 @@ bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 
 // 円軌道での移動命令
 // 引数：targetRadius：目標円軌道半径(m)
-// 　　　targetDegree：目標円軌道角度(deg)
-// 　　　targetSpeed：目標速度(m/s)
+// 　　　targetDegree：目標円軌道角度(deg、+で半時計周り、-で時計回り)
+// 　　　targetSpeed：目標速度(m/s、-で後進)
 // 戻り値：エラー発生や速度の取得失敗でfalse
 bool CuGoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float targetSpeed){
 	
@@ -170,10 +182,16 @@ bool CuGoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float 
 	}
 
 	// 時間の計算
-	runTime = targetDegreeRad / (targetSpeed / targetRadius);		// 角度/角速度
+	runTime = abs(targetDegreeRad / (targetSpeed / targetRadius));		// 角度/角速度
 
 	// 走行開始
-	SetMoveSpeed((int16_t)(targetSpeed * 1000), (int16_t)(targetSpeed / targetRadius * 1000));
+	if(0 < targetSpeed){
+		SetMoveSpeed((int16_t)(targetSpeed * 1000), (int16_t)(targetDegreeRad / runTime * 1000));
+	}
+	else{
+		SetMoveSpeed((int16_t)(targetSpeed * 1000), (int16_t)(-targetDegreeRad / runTime * 1000));
+	}
+	
 	if(!cugoCommon.Wait((uint32_t)(runTime * 1000))){
 		PC_PRINTLN(F("##WARNING::エラーが発生しました。走行を中断します。##"));
 		return false;
@@ -217,7 +235,7 @@ bool CuGoDiffDriveCtrl::Stop(void){
 		return false;
 	}
 	
-	SetMoveSpeed(0,0);
+	crst01a.SetMoveSpeed(0, 0, 0);	// ストップはコマンドモードに依存しないでほしいので直接
 	
 	return true;
 }
@@ -260,28 +278,28 @@ void CuGoDiffDriveCtrl::SetKinematics(float leftTireDiameter, float rightTireDia
 	float fwdKinematics[12];
 	float InvKinematics[12];
 	
-	fwdKinematics[0] = M_PI * leftTireDiameter * leftGearRatio / 120;
-	fwdKinematics[1] = M_PI * rightTireDiameter * rightGearRatio / 120;
-	fwdKinematics[2] = 0;
+	fwdKinematics[0] = 0;
+	fwdKinematics[1] = M_PI * leftTireDiameter * leftGearRatio / 120;
+	fwdKinematics[2] = -M_PI * rightTireDiameter * rightGearRatio / 120;
 	fwdKinematics[3] = 0;
 	fwdKinematics[4] = 0;
 	fwdKinematics[5] = 0;
 	fwdKinematics[6] = 0;
 	fwdKinematics[7] = 0;
-	fwdKinematics[8] = M_PI * leftTireDiameter * leftGearRatio / 60 / tread;
-	fwdKinematics[9] = M_PI * rightTireDiameter * rightGearRatio / 60 / tread;
-	fwdKinematics[10] = 0;
+	fwdKinematics[8] = 0;
+	fwdKinematics[9] = -M_PI * leftTireDiameter * leftGearRatio / 60 / tread;
+	fwdKinematics[10] = -M_PI * rightTireDiameter * rightGearRatio / 60 / tread;
 	fwdKinematics[11] = 0;
 	
-	InvKinematics[0] = 60 / (M_PI * leftTireDiameter * leftGearRatio);
+	InvKinematics[0] = 0;
 	InvKinematics[1] = 0;
-	InvKinematics[2] = -30 * tread / (M_PI * leftTireDiameter * leftGearRatio);
-	InvKinematics[3] = -60 / (M_PI * rightTireDiameter * rightGearRatio);
+	InvKinematics[2] = 0;
+	InvKinematics[3] = 60 / (M_PI * leftTireDiameter * leftGearRatio);
 	InvKinematics[4] = 0;
-	InvKinematics[5] = -30 * tread / (M_PI * rightTireDiameter * rightGearRatio);
-	InvKinematics[6] = 0;
+	InvKinematics[5] = -30 * tread / (M_PI * leftTireDiameter * leftGearRatio);
+	InvKinematics[6] = -60 / (M_PI * rightTireDiameter * rightGearRatio);
 	InvKinematics[7] = 0;
-	InvKinematics[8] = 0;
+	InvKinematics[8] = -30 * tread / (M_PI * rightTireDiameter * rightGearRatio);
 	InvKinematics[9] = 0;
 	InvKinematics[10] = 0;
 	InvKinematics[11] = 0;

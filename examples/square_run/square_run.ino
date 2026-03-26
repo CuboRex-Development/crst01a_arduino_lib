@@ -28,19 +28,28 @@ void loop() {
 		
 		//ここから自動走行モードの記述
 		//サンプルコード記載
-		Serial.println(F("自動走行モード開始"));  
+		Serial.println(F("自動走行モード開始"));
 		cugoCommon.Wait(1000);
 
 		Serial.println(F("1.0mの正方形移動の実施"));
 		cugoDiffDriveCtrl.MoveForward(1.0);
 		cugoCommon.Wait(1000);
-		cugoDiffDriveCtrl.MoveForward(1.0);
+		cugoDiffDriveCtrl.MoveTurn(90);
 		cugoCommon.Wait(1000);
 		cugoDiffDriveCtrl.MoveForward(1.0);
 		cugoCommon.Wait(1000);
+		cugoDiffDriveCtrl.MoveTurn(90);
+		cugoCommon.Wait(1000);
 		cugoDiffDriveCtrl.MoveForward(1.0);
+		cugoCommon.Wait(1000);
+		cugoDiffDriveCtrl.MoveTurn(90);
+		cugoCommon.Wait(1000);
+		cugoDiffDriveCtrl.MoveForward(1.0);
+		cugoCommon.Wait(1000);
+		cugoDiffDriveCtrl.MoveTurn(90);
 		cugoCommon.Wait(1000);
 		
+		cugoDiffDriveCtrl.Stop();
 		Serial.println(F("自動走行モード終了"));
 		
 		//サンプルコード終了

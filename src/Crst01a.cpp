@@ -1528,6 +1528,7 @@ bool Crst01a::GetInvKinematics(float *data, uint32_t timeout){
 // 引数：t：タイマー構造体ポインタ
 // 戻り値：true (継続)
 bool Crst01a::TimerHandler0(struct repeating_timer *t){
+	crst01a.ClearDriverError(0x00);	// タイムアウト防止用にエラー解除(0x00なのでなにも解除しない)
 	crst01a.GetCmd();		// 車両コントローラから電文の読み出し
 	return true;
 }
