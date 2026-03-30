@@ -21,7 +21,6 @@ class CuGoDiffDriveCtrl{
 		bool MoveTurn(float targetDegree, float targetSpeed = DEF_SPEED_TURN);						// 旋回制御
 		bool MoveCurve(float targetRadius, float targetDegree, float targetSpeed = DEF_SPEED_CURVE);// 円軌道での移動命令
 		bool Stop(void);																		// 停止命令
-		bool CheckSpeed(float *xSpeed, float *yawSpeed);							// 速度取得
 		void SetKinematics(float leftTireDiameter, float rightTireDiameter, float leftGearRatio, float rightGearRatio, float tread);	// 順運動学、逆運運動学設定関数
 		void SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed);
 		

@@ -241,31 +241,6 @@ bool CuGoDiffDriveCtrl::Stop(void){
 }
 
 
-// 速度取得
-// 移送速度、旋回速度を設定する電文です。
-// 引数：xSpeed：X(forward)速度 (値×0.001m/s)
-// 　　　yawSpeed：ωθ(left rotation)速度 (値×0.001rad/s)
-// 戻り値：速度の取得失敗でfalse
-bool CuGoDiffDriveCtrl::CheckSpeed(float *xSpeed, float *yawSpeed){
-	
-	uint32_t recvTime;
-	int16_t xSpeedInt,ySpeedInt,yawSpeedInt;
-	float ySpeed;
-	
-	crst01a.GetReadRunStatus(&xSpeedInt, &ySpeedInt, &yawSpeedInt, &recvTime);
-	
-	if(RECV_TIMEOUT < (millis() - recvTime)){
-		// 最後に受信したのが古すぎる
-		PC_PRINTLN(F("##WARNING::走行速度が正常に取得できませんでした。走行速度の定期送信を有効にしてください。##"));
-		return false;
-	}
-	
-	*xSpeed = (float)xSpeedInt / 1000;
-	*yawSpeed = (float)yawSpeedInt / 1000;
-	
-	return true;
-}
-
 
 // 順運動学、逆運運動学設定関数
 // 引数：leftTireDiameter：左タイヤ直径 (m)
