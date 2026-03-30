@@ -36,7 +36,7 @@ Crst01a::Crst01a(void):iTimer0(0){
 	
 	l_reqCycleMsg.startByte = CRST_START_BYTE;
 	l_reqCycleMsg.funcCode = CRST_FUNC_SET_DATA_PERIODIC;
-	l_reqCycleMsg.data[0] = 0x02;
+	l_reqCycleMsg.data[0] = 0x00;
 	l_reqCycleMsg.data[1] = 0x00;
 	l_reqCycleMsg.data[2] = 0x00;
 	l_reqCycleMsg.data[3] = 0x00;
@@ -86,6 +86,8 @@ bool Crst01a::Init(void){
 		l_initFlg = true;
 	}
 	
+	l_dataId = 0;
+	
 	return true;
 }
 
@@ -100,6 +102,7 @@ void Crst01a::SetControlMode(uint8_t mode){
 	sendTelegram.funcCode = CRST_FUNC_MODE_CHANGE;	// モード変更、ブレーキON/OFF、フォールト解除、エンコーダリセット
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[0] = mode;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -115,6 +118,7 @@ void Crst01a::SetEmergencyDeceleration(void){
 	sendTelegram.funcCode = CRST_FUNC_MODE_CHANGE;	// モード変更、ブレーキON/OFF、フォールト解除、エンコーダリセット
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[1] = 0x01;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -130,6 +134,7 @@ void Crst01a::ClearControllerError(uint8_t resetError){
 	sendTelegram.funcCode = CRST_FUNC_MODE_CHANGE;	// モード変更、ブレーキON/OFF、フォールト解除、エンコーダリセット
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[2] = resetError;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -145,6 +150,7 @@ void Crst01a::ClearDriverError(uint8_t resetError){
 	sendTelegram.funcCode = CRST_FUNC_MODE_CHANGE;	// モード変更、ブレーキON/OFF、フォールト解除、エンコーダリセット
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[3] = resetError;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -160,6 +166,7 @@ void Crst01a::ClearEncoderCount(void){
 	sendTelegram.funcCode = CRST_FUNC_MODE_CHANGE;	// モード変更、ブレーキON/OFF、フォールト解除、エンコーダリセット
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[4] = 0x01;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -180,6 +187,7 @@ void Crst01a::SetMoveSpeed(int16_t xSpeed, int16_t ySpeed, int16_t yawSpeed){
 	*(int16_t*)(&sendTelegram.data[0]) = xSpeed;
 	*(int16_t*)(&sendTelegram.data[2]) = ySpeed;
 	*(int16_t*)(&sendTelegram.data[4]) = yawSpeed;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -200,6 +208,7 @@ void Crst01a::SetLights(uint8_t headlightControl, uint8_t towerlightControl){
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[0] = headlightControl;
 	sendTelegram.data[1] = towerlightControl;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -298,6 +307,7 @@ void Crst01a::SetReq(uint8_t id){
 			break;
 	}
 	
+	reqMsg.dataId = CalcAddDataId();
 	reqMsg.checkSum = CalcCheckSum(&reqMsg);			// チェックサムをセット
 	SERIAL_CRST01A.write((uint8_t*)&reqMsg, CRST_PACKET_LEN);	// 送信
 }
@@ -316,6 +326,7 @@ bool Crst01a::SaveParamReq(uint32_t timeout){
 	sendTelegram.startByte = CRST_START_BYTE;
 	sendTelegram.funcCode = CRST_FUNC_SAVE_PARAM_REQ;	// 
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);		// チェックサムをセット
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 	
@@ -343,8 +354,16 @@ bool Crst01a::SaveParamReq(uint32_t timeout){
 	}
 }
 
+// データ定期送信周期設定(0x40)
+// 送信周期の設定を行う電文です。
+// 引数：frequency：0x00：10Hz, 0x01：20Hz, 0x02：50Hz
+// 戻り値：なし
+void Crst01a::SetCycleReqFrequency(uint8_t frequency){
+	l_reqCycleMsg.data[0] = frequency;
+}
+
 // データ定期送信設定(0x40)(設定)
-// 送信周期の設定と、各電文の定期送信の切り替えを行う電文です。
+// 各電文の定期送信の切り替えを行う電文です。
 // 引数：id：定期送信を有効にするファンクションコード
 // 戻り値：なし
 void Crst01a::SetCycleReq(uint8_t id){
@@ -398,6 +417,7 @@ void Crst01a::SetCycleReq(uint8_t id){
 			break;
 	}
 	
+	l_reqCycleMsg.dataId = CalcAddDataId();
 	l_reqCycleMsg.checkSum = CalcCheckSum(&l_reqCycleMsg);			// チェックサムをセット
 	SERIAL_CRST01A.write((uint8_t*)&l_reqCycleMsg, CRST_PACKET_LEN);	// 送信
 }
@@ -457,6 +477,7 @@ void Crst01a::ClearCycleReq(uint8_t id){
 			break;
 	}
 	
+	l_reqCycleMsg.dataId = CalcAddDataId();
 	l_reqCycleMsg.checkSum = CalcCheckSum(&l_reqCycleMsg);			// チェックサムをセット
 	SERIAL_CRST01A.write((uint8_t*)&l_reqCycleMsg, CRST_PACKET_LEN);	// 送信
 }
@@ -477,6 +498,7 @@ void Crst01a::SetSpeed(uint16_t xSpeed, uint16_t ySpeed, uint16_t yawSpeed){
 	*(uint16_t*)(&sendTelegram.data[0]) = xSpeed;
 	*(uint16_t*)(&sendTelegram.data[2]) = ySpeed;
 	*(uint16_t*)(&sendTelegram.data[4]) = yawSpeed;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -495,6 +517,7 @@ void Crst01a::SetBumperBrake(uint8_t bumperConfig, uint8_t brakeConfig){
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[0] = bumperConfig;
 	sendTelegram.data[1] = brakeConfig;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -513,6 +536,7 @@ void Crst01a::SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(uint16_t*)(&sendTelegram.data[0]) = driverMinVoltage;
 	*(uint16_t*)(&sendTelegram.data[2]) = driverMaxVoltage;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -529,6 +553,7 @@ void Crst01a::SetMdConfig0(uint16_t driveMotorExistFlag){
 	sendTelegram.funcCode = CRST_FUNC_SET_MD_CONFIG0;
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(uint16_t*)(&sendTelegram.data[0]) = driveMotorExistFlag;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -545,6 +570,7 @@ void Crst01a::SetMdConfig1(float motorMaxGbSpeed){
 	sendTelegram.funcCode = CRST_FUNC_SET_MD_CONFIG1;
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(float*)(&sendTelegram.data[0]) = motorMaxGbSpeed;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -561,6 +587,7 @@ void Crst01a::SetMdConfig2(float judgeToStopRPM){
 	sendTelegram.funcCode = CRST_FUNC_SET_MD_CONFIG2;
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(float*)(&sendTelegram.data[0]) = judgeToStopRPM;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -579,6 +606,7 @@ void Crst01a::SetMdConfig3(float maxTorque, float startTorque){
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(float*)(&sendTelegram.data[0]) = maxTorque;
 	*(float*)(&sendTelegram.data[4]) = startTorque;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -597,6 +625,7 @@ void Crst01a::SetMdConfig4(float recoveryTorque, float torqueAddRatio){
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(float*)(&sendTelegram.data[0]) = recoveryTorque;
 	*(float*)(&sendTelegram.data[4]) = torqueAddRatio;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -626,6 +655,7 @@ void Crst01a::SetMdConfig5(uint16_t speedRampA, uint16_t speedRampB, uint16_t sp
 	*(uint16_t*)(&sendTelegram.data[2]) = speedRampB;
 	*(uint16_t*)(&sendTelegram.data[4]) = speedRampC;
 	*(uint16_t*)(&sendTelegram.data[6]) = speedRampSelect;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -648,6 +678,7 @@ void Crst01a::SetRcConfig0(uint16_t rcCenterValue, uint16_t rcMinValue, uint16_t
 	*(uint16_t*)(&sendTelegram.data[2]) = rcMinValue;
 	*(uint16_t*)(&sendTelegram.data[4]) = rcMaxValue;
 	*(uint16_t*)(&sendTelegram.data[6]) = rcCenterMargin;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -666,6 +697,7 @@ void Crst01a::SetRcConfig1(uint16_t rcLowSwitchingThreshold, uint16_t rcHighSwit
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	*(uint16_t*)(&sendTelegram.data[4]) = rcLowSwitchingThreshold;
 	*(uint16_t*)(&sendTelegram.data[6]) = rcHighSwitchingThreshold;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -694,6 +726,7 @@ void Crst01a::SetRcConfig23(uint8_t movementXChannel, uint8_t movementYChannel, 
 	sendTelegram.data[4] = controlModeSwitchChannel;
 	sendTelegram.data[5] = brakeControlChannel;
 	sendTelegram.data[6] = errorAndBumperResetChannel;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 	
@@ -702,6 +735,7 @@ void Crst01a::SetRcConfig23(uint8_t movementXChannel, uint8_t movementYChannel, 
 	memset(sendTelegram.data, 0, CRST_DATA_LEN);
 	sendTelegram.data[0] = headlight0Channel;
 	sendTelegram.data[1] = headlight1Channel;
+	sendTelegram.dataId = CalcAddDataId();
 	sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 	SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 }
@@ -721,6 +755,7 @@ void Crst01a::SetFwdKinematics(float *data){
 		sendTelegram.funcCode = CRST_FUNC_SET_FWD_KINEMATICS_0 + i;
 		*(float*)(&sendTelegram.data[0]) = data[0+i*2];
 		*(float*)(&sendTelegram.data[4]) = data[1+i*2];
+		sendTelegram.dataId = CalcAddDataId();
 		sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 		SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 	}
@@ -742,6 +777,7 @@ void Crst01a::SetInvKinematics(float *data){
 		sendTelegram.funcCode = CRST_FUNC_SET_INV_KINEMATICS_0 + i;
 		*(float*)(&sendTelegram.data[0]) = data[0+i*2];
 		*(float*)(&sendTelegram.data[4]) = data[1+i*2];
+		sendTelegram.dataId = CalcAddDataId();
 		sendTelegram.checkSum = CalcCheckSum(&sendTelegram);
 		SERIAL_CRST01A.write((uint8_t*)&sendTelegram, CRST_PACKET_LEN);	// 送信
 	}
@@ -789,8 +825,8 @@ void Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpe
 void Crst01a::GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime){
 
 	*headlightControl = l_recvExtIo.msg.data[0];
-	*towerlightControl = l_recvExtIo.msg.data[0];
-	*in4Bit = l_recvExtIo.msg.data[0];
+	*towerlightControl = l_recvExtIo.msg.data[1];
+	*in4Bit = l_recvExtIo.msg.data[2];
 	*recvTime = l_recvExtIo.recvTime;
 }
 
@@ -1449,6 +1485,7 @@ bool Crst01a::GetFwdKinematics(float *data, uint32_t timeout){
 	// 0xE0-0xE5を一括要求 (data[4] bit0-5をすべてセット)
 	telegram_t reqMsg = {CRST_START_BYTE, CRST_FUNC_SET_PARAM_SEND, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	reqMsg.data[4] = 0x3F;
+	reqMsg.dataId = CalcAddDataId();
 	reqMsg.checkSum = CalcCheckSum(&reqMsg);
 	SERIAL_CRST01A.write((uint8_t*)&reqMsg, CRST_PACKET_LEN);
 	
@@ -1497,6 +1534,7 @@ bool Crst01a::GetInvKinematics(float *data, uint32_t timeout){
 	// 0xF0-0xF5を一括要求 (data[6] bit0-5をすべてセット)
 	telegram_t reqMsg = {CRST_START_BYTE, CRST_FUNC_SET_PARAM_SEND, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	reqMsg.data[6] = 0x3F;
+	reqMsg.dataId = CalcAddDataId();
 	reqMsg.checkSum = CalcCheckSum(&reqMsg);
 	SERIAL_CRST01A.write((uint8_t*)&reqMsg, CRST_PACKET_LEN);
 	
@@ -1704,4 +1742,13 @@ uint8_t Crst01a::CalcCheckSum(telegram_t *p){
 	sum += p->dataId;
 	
 	return sum;
+}
+
+// data idのインクリメント
+// l_dataIdをインクリメントして結果を返す
+// 引数：なし
+// 戻り値：インクリメント後のl_dataId
+uint8_t Crst01a::CalcAddDataId(void){
+	l_dataId++;
+	return l_dataId;
 }

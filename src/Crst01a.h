@@ -106,6 +106,7 @@ class Crst01a{
 		void SetLights(uint8_t headlightControl, uint8_t towerlightControl);			// ヘッドライトとタワーライトのON/OFF設定(0x04)
 		void SetReq(uint8_t id);														// パラメータ送信設定(0x20) 引数で指定したもののみを要求する
 		bool SaveParamReq(uint32_t timeout = 200);										// パラメータ保存要求(0x24)
+		void SetCycleReqFrequency(uint8_t frequency);									// 
 		void SetCycleReq(uint8_t id);													// データ定期送信設定(0x40)(設定)
 		void ClearCycleReq(uint8_t id);													// データ定期送信設定(0x40)(クリア)
 		void SetSpeed(uint16_t xSpeed, uint16_t ySpeed, uint16_t yawSpeed);				// 最大速度設定(0x41)
@@ -196,10 +197,13 @@ class Crst01a{
 		telegram_time_t l_recvInvKinematics[6];	// 逆運動学数列 (0xF0-0xF5)
 		// 単発応答を保持する変数
 		telegram_t l_RecvTelegram;
+		// data idを保持する変数
+		uint8_t l_dataId;
 		
 		uint16_t GetWaitFunkCode(void);				// 受信待ちフラグの取得関数
 		void SetWaitFunkCode(uint16_t waitFunkCode);// 受信待ちフラグの設定関数
 		uint8_t CalcCheckSum(telegram_t *p);		// チェックサムの計算
+		uint8_t CalcAddDataId(void);				// data idのインクリメント
 };
 
 extern Crst01a crst01a;
