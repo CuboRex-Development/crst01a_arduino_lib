@@ -55,8 +55,14 @@ bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 		return false;
 	}
 
+	// 引数チェック
+	if(0.0f == targetSpeed){
+		PC_PRINTLN(F("##WARNING::targetSpeed が0です。##"));
+		return false;
+	}
+
 	// 時間の計算
-	runTime = abs(targetDistance / targetSpeed);
+	runTime = fabsf(targetDistance / targetSpeed);
 
 	// 走行開始
 	if(0 < targetDistance){
@@ -89,7 +95,7 @@ bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 			return false;
 		}
 		
-		if(10 > xSpeed){
+		if(10 > abs(xSpeed)){
 			// 停止したと判断
 			return true;
 		}
@@ -117,8 +123,14 @@ bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 		return false;
 	}
 
+	// 引数チェック
+	if(0.0f == targetSpeed){
+		PC_PRINTLN(F("##WARNING::targetSpeed が0です。##"));
+		return false;
+	}
+
 	// 時間の計算
-	runTime = abs(targetDegree / targetSpeed);
+	runTime = fabsf(targetDegree / targetSpeed);
 
 	// 走行開始
 	if(0 < targetDegree){
@@ -151,12 +163,12 @@ bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 			return false;
 		}
 		
-		if(10 > yawSpeed){
+		if(10 > abs(yawSpeed)){
 			// 停止したと判断
 			return true;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -181,8 +193,14 @@ bool CuGoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float 
 		return false;
 	}
 
+	// 引数チェック
+	if(0.0f == targetSpeed || 0.0f == targetRadius){
+		PC_PRINTLN(F("##WARNING::targetSpeed または targetRadius が0です。##"));
+		return false;
+	}
+
 	// 時間の計算
-	runTime = abs(targetDegreeRad / (targetSpeed / targetRadius));		// 角度/角速度
+	runTime = fabsf(targetDegreeRad / (targetSpeed / targetRadius));		// 角度/角速度
 
 	// 走行開始
 	if(0 < targetSpeed){
@@ -215,12 +233,12 @@ bool CuGoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float 
 			return false;
 		}
 		
-		if(10 > yawSpeed){
+		if(10 > abs(yawSpeed)){
 			// 停止したと判断
 			return true;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -242,7 +260,7 @@ bool CuGoDiffDriveCtrl::Stop(void){
 
 
 
-// 順運動学、逆運運動学設定関数
+// 順運動学、逆運動学設定関数
 // 引数：leftTireDiameter：左タイヤ直径 (m)
 // 　　　rightTireDiameter：右タイヤ直径 (m)
 // 　　　leftGearRatio：左減速比 (減速時に1未満)

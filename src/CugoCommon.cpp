@@ -77,8 +77,8 @@ uint32_t CugoCommon::GetErr(void){
 void CugoCommon::ClearErr(uint32_t err){
 	
 	
-	crst01a.ClearControllerError(err | 0x00FF);
-	crst01a.ClearDriverError((err | 0xFF00) >> 8);
+	crst01a.ClearControllerError(err & 0xFF);
+	crst01a.ClearDriverError((err >> 8) & 0xFF);
 }
 
 
@@ -126,8 +126,12 @@ bool CugoCommon::Wait(uint32_t time){
 				return true;		// リセットしたい、処理の先頭に戻りたいので待ちから抜ける
 			}
 			else{
-				time -= millis()-now;	// 待ち時間から経過時間を引く
-				
+				uint32_t elapsed = millis() - now;
+				if(elapsed >= time){
+					return true;	// 待ち時間が経過済みのため正常終了
+				}
+				time -= elapsed;	// 残り待ち時間を更新
+
 				// モードがコマンドモードになるまで待つ
 				while(CUGO_CMD_MODE != mode){
 					if(GetErr()){
@@ -137,7 +141,7 @@ bool CugoCommon::Wait(uint32_t time){
 					GetControlMode(&mode);
 					delay(1);
 				}
-				
+
 				now = millis();	// 開始時刻をセットして再開
 			}
 		}
