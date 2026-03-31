@@ -1,6 +1,6 @@
 
 #include <math.h>
-#include "CuGoDiffDriveCtrl.h"
+#include "CugoDiffDriveCtrl.h"
 #include "CugoCommon.h"
 #include "Crst01a.h"
 
@@ -10,12 +10,12 @@
 #define RECV_TIMEOUT	(500)		// 受信した定期送信系データが古いと判断する閾値
 
 
-CuGoDiffDriveCtrl cugoDiffDriveCtrl;
+CugoDiffDriveCtrl cugoDiffDriveCtrl;
 
 
 // コンストラクタ
 // 引数：なし
-CuGoDiffDriveCtrl::CuGoDiffDriveCtrl(void){
+CugoDiffDriveCtrl::CugoDiffDriveCtrl(void){
 	l_xSpeed = 0;
 	l_yawSpeed = 0;
 }
@@ -24,13 +24,13 @@ CuGoDiffDriveCtrl::CuGoDiffDriveCtrl(void){
 // 初期化関数
 // 引数：pSerial：ログの出力に使用するシリアルのポインタ。NULLを指定するとログを出力しない。
 // 戻り値：なし
-void CuGoDiffDriveCtrl::Init(HardwareSerial* pSerial){
+void CugoDiffDriveCtrl::Init(HardwareSerial* pSerial){
 	
 	l_pSerial = pSerial;
 	
 	if(!crst01a.Init()){
 		PC_PRINTLN(F("##################################"));
-		PC_PRINTLN(F("###   CuGoDiffDriveCtrl Start  ###"));
+		PC_PRINTLN(F("###   CugoDiffDriveCtrl Start  ###"));
 		PC_PRINTLN(F("##################################"));
 	}
 }
@@ -41,7 +41,7 @@ void CuGoDiffDriveCtrl::Init(HardwareSerial* pSerial){
 // 引数：targetDistance：目標走行距離(m、-で後進)
 // 　　　targetSpeed：目標速度(m/s、-で後進)
 // 戻り値：エラー発生や速度の取得失敗でfalse
-bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
+bool CugoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 	
 	float runTime;
 	int16_t xSpeed;
@@ -109,7 +109,7 @@ bool CuGoDiffDriveCtrl::MoveForward(float targetDistance, float targetSpeed){
 // 引数：targetDegree：目標角度(deg、+で半時計周り、-で時計回り)
 // 　　　targetSpeed：目標速度(deg/s、-で反転)
 // 戻り値：エラー発生や速度の取得失敗でfalse
-bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
+bool CugoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 
 	float runTime;
 	int16_t xSpeed;
@@ -178,7 +178,7 @@ bool CuGoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed){
 // 　　　targetDegree：目標円軌道角度(deg、+で半時計周り、-で時計回り)
 // 　　　targetSpeed：目標速度(m/s、-で後進)
 // 戻り値：エラー発生や速度の取得失敗でfalse
-bool CuGoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float targetSpeed){
+bool CugoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float targetSpeed){
 	
 	float runTime;
 	int16_t xSpeed;
@@ -246,7 +246,7 @@ bool CuGoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float 
 // 停止命令
 // 引数：なし
 // 戻り値：エラー発生でfalse
-bool CuGoDiffDriveCtrl::Stop(void){
+bool CugoDiffDriveCtrl::Stop(void){
 
 	if(cugoCommon.GetErr()){
 		PC_PRINTLN(F("##WARNING::すでにエラーが発生しています。##"));
@@ -267,7 +267,7 @@ bool CuGoDiffDriveCtrl::Stop(void){
 // 　　　rightGearRatio：右減速比 (減速時に1未満)
 // 　　　tread：トレッド (m)
 // 戻り値：なし
-void CuGoDiffDriveCtrl::SetKinematics(float leftTireDiameter, float rightTireDiameter, float leftGearRatio, float rightGearRatio, float tread){
+void CugoDiffDriveCtrl::SetKinematics(float leftTireDiameter, float rightTireDiameter, float leftGearRatio, float rightGearRatio, float tread){
 	float fwdKinematics[12];
 	float InvKinematics[12];
 	
@@ -302,7 +302,7 @@ void CuGoDiffDriveCtrl::SetKinematics(float leftTireDiameter, float rightTireDia
 }
 
 
-void CuGoDiffDriveCtrl::SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed){
+void CugoDiffDriveCtrl::SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed){
 	
 	uint8_t mode;
 	

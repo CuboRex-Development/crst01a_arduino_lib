@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "hardware/sync.h"
-#include "crst01a.h"
+#include "Crst01a.h"
 
 // シリアル関連
 #define SERIAL_CRST01A		Serial1		// 車両コントローラとの通信に使用するシリアル

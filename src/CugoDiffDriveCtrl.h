@@ -12,10 +12,10 @@
 #define DEF_SPEED_TURN		(45)	// 未設定時のデフォルトスピード(deg/s)
 #define DEF_SPEED_CURVE		(0.3)	// 未設定時のデフォルトスピード(m/s)
 
-class CuGoDiffDriveCtrl{
+class CugoDiffDriveCtrl{
 
 	public:
-		CuGoDiffDriveCtrl(void);
+		CugoDiffDriveCtrl(void);
 		void Init(HardwareSerial* pSerial = &SERIAL_PC);										// 初期化関数
 		bool MoveForward(float targetDistance, float targetSpeed = DEF_SPEED_FORWARD);				// 前後進制御
 		bool MoveTurn(float targetDegree, float targetSpeed = DEF_SPEED_TURN);						// 旋回制御
@@ -30,6 +30,6 @@ class CuGoDiffDriveCtrl{
 		int16_t l_yawSpeed;
 };
 
-extern CuGoDiffDriveCtrl cugoDiffDriveCtrl;
+extern CugoDiffDriveCtrl cugoDiffDriveCtrl;
 
 #endif // CUGO_DIFFDRIVER_CTRL_H_
