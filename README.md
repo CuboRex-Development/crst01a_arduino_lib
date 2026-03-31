@@ -3,7 +3,16 @@
 CRST01A（CuboRex製 車両コントローラ）を Raspberry Pi Pico 2 W から制御するための Arduino ライブラリです。
 
 ---
-
+## 目次
+- [概要](#概要)
+- [動作環境](#動作環境)
+- [セットアップ](#セットアップ)
+- [API リファレンス](#api-リファレンス)
+- [電文フォーマット](#電文フォーマット)
+- [ファイル構成](#ファイル構成)
+- [ライセンス](#ライセンス)
+- [関連リンク](#関連リンク)
+---
 ## 概要
 
 CRST01A と UART（115200 bps）で通信し、走行速度の指令・センサデータの取得・パラメータの設定/読み出しを行います。
@@ -43,7 +52,7 @@ extern CuGoDiffDriveCtrl cugoDiffDriveCtrl;
 ### 1. Arduino IDE のインストール
 
 1. [公式サイト](https://www.arduino.cc/en/software) からご自身の OS に合ったバージョンを選択
-2. **JUST DOWNLOAD** または **CONTRIBUTE & DOWNLOAD** を選択してダウンロード
+2. **DOWNLOAD** を選択してダウンロード
 3. ダウンロードしたファイルを実行し、指示に従ってインストール
 
 ---
@@ -97,12 +106,12 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 
 1. 本リポジトリの **Code ＞ Download ZIP** からダウンロード
 
-<img width="485" height="371" alt="image" src="https://github.com/user-attachments/assets/3c96f657-b5ac-4787-bcf8-68e500d339bd" />
+   <img width="485" height="371" alt="image" src="https://github.com/user-attachments/assets/3c96f657-b5ac-4787-bcf8-68e500d339bd" />
 
 
 2. Arduino IDE で **スケッチ ＞ ライブラリをインクルード ＞ .ZIP 形式のライブラリをインストール…** を選択し、ダウンロードした ZIP を指定
 
-<img width="576" height="390" alt="image" src="https://github.com/user-attachments/assets/f9fdcdf8-1da7-40b7-8b0b-52b968a9cf10" />
+   <img width="576" height="390" alt="image" src="https://github.com/user-attachments/assets/f9fdcdf8-1da7-40b7-8b0b-52b968a9cf10" />
 
 
 
@@ -110,111 +119,46 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 
 1. **スケッチ ＞ ライブラリをインクルード ＞ ライブラリを管理…** を選択
 
-<img width="600" height="396" alt="image" src="https://github.com/user-attachments/assets/2968ca2e-ae91-43f9-a636-12a595cb7190" />
+   <img width="600" height="396" alt="image" src="https://github.com/user-attachments/assets/2968ca2e-ae91-43f9-a636-12a595cb7190" />
 
 
 2. `RPi_Pico_TimerInterrupt` で検索し **RPI_PICO_TimerInterrupt** を見つけて **INSTALL** を押す
 
-  <img width="811" height="649" alt="image" src="https://github.com/user-attachments/assets/5ca84278-7f1f-48b8-a324-b4094712670c" />
-  <img width="810" height="774" alt="image" src="https://github.com/user-attachments/assets/c10c5a4c-8dc9-4e3b-9f6c-a753b425061d" />
+   <img width="811" height="649" alt="image" src="https://github.com/user-attachments/assets/5ca84278-7f1f-48b8-a324-b4094712670c" />
+   <img width="810" height="774" alt="image" src="https://github.com/user-attachments/assets/c10c5a4c-8dc9-4e3b-9f6c-a753b425061d" />
 
 
 
 ---
 
-### 4. ロボットパラメータの設定
-
-ロボットの足回りを変更した場合は変更に合わせてパラメータを変更する必要があります。  
-(出荷時から変更していない場合は設定する必要がありません。)  
-スケッチ内でロボットの機構パラメータを `SetKinematics()` で設定してください。
-値は CRST01A のフラッシュに書き込まれ、電源を切っても保持されます。
-
-```cpp
-cugoDiffDriveCtrl.SetKinematics(
-    0.07716,   // 左タイヤ直径（m）
-    0.07716,   // 右タイヤ直径（m）
-    0.1144,    // 左減速比
-    0.1144,    // 右減速比
-    0.38       // トレッド（左右タイヤ間距離）（m）
-);
-```
-
-> **注意：** タイヤ径・減速比・トレッドが実機と一致しない場合、`MoveForward()` / `MoveTurn()` 等の距離・角度に誤差が生じます。
-
----
-
-### 5. Raspberry Pi Pico 2W への書き込み
+### 4. Raspberry Pi Pico 2W への書き込み
 
 1. スケッチが Arduino IDE で開かれていることを確認
 
 2. USB ケーブルで PC と Raspberry Pi Pico 2W を接続する（PC に認識されない場合は **BOOTSEL** ボタンを押しながら挿入）
 
-  <ここにBOOTSELボタンの画像>
+   <ここにBOOTSELボタンの画像>
 
 3. **ツール ＞ ボード ＞ Raspberry Pi Pico/RP2040/PR2350 ＞ Raspberry Pi Pico 2W** を選択
 
-<img width="1019" height="471" alt="image" src="https://github.com/user-attachments/assets/8de292ad-0c82-4219-9fad-2628b50500a7" />
+   <img width="1019" height="471" alt="image" src="https://github.com/user-attachments/assets/8de292ad-0c82-4219-9fad-2628b50500a7" />
 
 
 4. **ツール ＞ ポート** から Raspberry Pi Pico 2W のポートまたは"UF2 Board"を選択
 
-<img width="1146" height="657" alt="image" src="https://github.com/user-attachments/assets/ee090fd2-b490-4d5f-a728-6396cf24b6bf" />
+   <img width="1146" height="657" alt="image" src="https://github.com/user-attachments/assets/ee090fd2-b490-4d5f-a728-6396cf24b6bf" />
 
-<img width="830" height="723" alt="image" src="https://github.com/user-attachments/assets/3580c55e-eefd-4919-8c35-a76b5250de71" />
+   <img width="830" height="723" alt="image" src="https://github.com/user-attachments/assets/3580c55e-eefd-4919-8c35-a76b5250de71" />
 
 
 5. **→（書き込み）** ボタンを押す
 
-<img width="630" height="477" alt="image" src="https://github.com/user-attachments/assets/04277e37-5092-4b1e-97e8-93b1ace27879" />
+   <img width="630" height="477" alt="image" src="https://github.com/user-attachments/assets/04277e37-5092-4b1e-97e8-93b1ace27879" />
 
 
 6. **「Done uploading」** と表示されれば完了
-7. <img width="592" height="187" alt="image" src="https://github.com/user-attachments/assets/ebc80402-d780-4e6f-8ef6-7a015315346e" />
 
-
----
-
-### 6. CRST01A のシリアル出力をRaspberry Pi Pico 2Wに変更
-
-電源が切れていることを確認し、CRST01A の DIP スイッチを下図のように変更してください。  
-＜ここにDIPスイッチの画像＞
-
----
-
-## クイックスタート
-
-```cpp
-#include <CugoCommon.h>
-#include <CugoDiffDriveCtrl.h>
-
-void setup() {
-    Serial.begin(115200);
-
-    cugoDiffDriveCtrl.Init();   // タイマー割り込みの起動を含む
-    cugoCommon.Init();
-
-    // RCモードからコマンドモードに切り替わったら自動走行を開始
-    cugoCommon.SetSwitchReset(true);
-}
-
-void loop() {
-    uint8_t mode;
-    cugoCommon.GetControlMode(&mode);
-
-    if (CUGO_CMD_MODE == mode) {
-        // 1辺 1.0 m の正方形走行
-        for (int i = 0; i < 4; i++) {
-            cugoDiffDriveCtrl.MoveForward(1.0);   // 1.0 m 前進
-            cugoCommon.Wait(500);
-            cugoDiffDriveCtrl.MoveTurn(90);        // 90° 旋回
-            cugoCommon.Wait(500);
-        }
-        cugoDiffDriveCtrl.Stop();
-        while (1);
-    }
-}
-```
-
+   <img width="592" height="187" alt="image" src="https://github.com/user-attachments/assets/ebc80402-d780-4e6f-8ef6-7a015315346e" />
 ---
 
 ## API リファレンス
@@ -287,7 +231,8 @@ bool Wait(uint32_t time)
 - 待機中にエラーが発生した場合は即座に `false` を返す。
 - RCモードに切り替わった場合の挙動は `SetSwitchReset()` の設定に従う。
 
-> **注意：スケッチ内では `delay()` の代わりに `Wait()` を使用してください。**
+> [!WARNING]
+> スケッチ内では `delay()` の代わりに `Wait()` を使用してください。**
 > Arduino 標準の `delay()` はブロッキング待機のため、待機中に RC モードへ切り替わっても `SetSwitchReset()` の設定が反映されません。
 > `Wait()` を使用することで、エラー検知や RC モード切替への対応が正しく動作します。
 
@@ -404,12 +349,22 @@ void SetKinematics(float leftTireDiameter, float rightTireDiameter,
 - `rightGearRatio`：右減速比。減速している場合は 1 未満の値を指定する。
 - `tread`：左右タイヤ間距離（m）
 - 指定した値から順運動学・逆運動学行列を計算して CRST01A に書き込む。
+- 値は CRST01A のフラッシュに書き込まれ、電源を切っても保持される。
+> [!IMPORTANT]
+> ロボットの足回りを変更した場合は変更に合わせてパラメータを変更する必要があります。  
+> 出荷時から変更していない場合は設定する必要がありません。  
+> タイヤ径・減速比・トレッドが実機と一致しない場合、`MoveForward()` / `MoveTurn()` 等の距離・角度に誤差が生じます。
+
+| 例 | 動作 |
+|----|------|
+| `SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38)` | 左右のタイヤ直径が0.07716m、減速比が0.1144、トレッド幅が0.38m |
 
 ---
 
 ### Crst01a（上級者向け低レベル API）
 
-> **通常の使用では触る必要はありません。**
+> [!WARNING]
+> 通常の使用では触る必要はありません。  
 > `CugoCommon` / `CuGoDiffDriveCtrl` で対応できない場合や、CRST01A との通信を細かく制御したい場合のみ参照してください。
 
 #### 基本制御
