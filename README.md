@@ -6,16 +6,21 @@ CuGo V4.5等に搭載されたCuboRex製車両コントローラ(CRST01A)を Ras
 - CuGo V4.5
 
 ---
+
 ## 目次
 - [概要](#概要)
 - [動作環境](#動作環境)
 - [セットアップ](#セットアップ)
+- [サンプルスケッチ](#サンプルスケッチ)
 - [API リファレンス](#api-リファレンス)
 - [電文フォーマット](#電文フォーマット)
 - [ファイル構成](#ファイル構成)
+- [クラス構成](#クラス構成)
 - [ライセンス](#ライセンス)
 - [関連リンク](#関連リンク)
+
 ---
+
 ## 概要
 
 本リポジトリには車両コントローラ(CRST01A)をRaspberry Pi Pico 2 Wから制御できるArduino ライブラリとサンプルコードが含まれています。  
@@ -42,12 +47,12 @@ CuGo V4.5等に搭載されたCuboRex製車両コントローラ(CRST01A)を Ras
 ### 1. Arduino IDE のインストール
 
 1. [公式サイト](https://www.arduino.cc/en/software) からご自身の OS に合ったバージョンを選択
-2. **DOWNLOAD** を選択してダウンロード
+2. **DOWNLOAD** を選択してArduino IDEをダウンロード
 3. ダウンロードしたファイルを実行し、指示に従ってインストール
 
 ---
 
-### 2. Raspberry Pi Pico の初期設定
+### 2. Raspberry Pi Pico 向け設定
 
 1. **ファイル ＞ 環境設定** を選択
 
@@ -68,21 +73,20 @@ CuGo V4.5等に搭載されたCuboRex製車両コントローラ(CRST01A)を Ras
 4. `pico` で検索し **Raspberry Pi Pico/RP2040/RP2350** を見つけて **INSTALL** を押す
 
    <img width="649" height="475" alt="image" src="https://github.com/user-attachments/assets/fda6a160-b4bb-496f-9765-3217e786d144" />
-   <img width="756" height="729" alt="image" src="https://github.com/user-attachments/assets/591a8995-d30d-4b00-b49a-bc5a4737863e" />
+   <img width="648" height="720" alt="image" src="https://github.com/user-attachments/assets/591a8995-d30d-4b00-b49a-bc5a4737863e" />
 
 
 <details>
 <summary>Python エラーが発生する場合</summary>
 
-以下の図のようにpythonがうまく実行できないことでコンパイルが通らないことがあります。これはボードマネージャでRP2040(RP2350)をインストールしたのち、 削除してもう一度入れなおした際に発生します。すでに一度RP2040(RP2350)をインストールした後に2回目以降にインストールする際に必要なデータが展開しきれず、必要なものが再配置されないバグが発生していると考えられます。
+以下の図のようにpythonがうまく実行できないことでコンパイルが通らないことがあります。これはボードマネージャでRP2040(RP2350)をインストールしたのち、 削除してもう一度入れなおした際に発生します。すでに一度RP2040(RP2350)をインストールした後に2回目以降にインストールする際に必要なデータが展開しきれず、必要なものが再配置されないバグが発生していると考えられます。  
 <img width="651" height="218" alt="image" src="https://github.com/user-attachments/assets/6c56ae28-4654-4443-b6c0-fd77cca24563" />
 
+以下のフォルダに保存されている内容を削除します。
 
 ```
 C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-python3\1.0.1-base-3a57aed-1
 ```
-
-![フォルダ削除](https://private-user-images.githubusercontent.com/22425319/272511907-6f26ac47-6050-43bc-bdfa-2f72e3d013c7.png)
 
 その後、ボードマネージャから**Raspberry Pi Pico/RP2040/RP2350**を削除(REMOVE)し、再度インストールしてください。
 
@@ -123,7 +127,9 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 
 ### 4. Raspberry Pi Pico 2W への書き込み
 
-1. スケッチが Arduino IDE で開かれていることを確認
+1. スケッチを Arduino IDE で開く
+
+   [スケッチのサンプルはこちら](#サンプルスケッチ)
 
 2. USB ケーブルで PC と Raspberry Pi Pico 2W を接続する（PC に認識されない場合は **BOOTSEL** ボタンを押しながら挿入）
 
@@ -149,6 +155,20 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 6. **「Done uploading」** と表示されれば完了
 
    <img width="592" height="187" alt="image" src="https://github.com/user-attachments/assets/ebc80402-d780-4e6f-8ef6-7a015315346e" />
+
+---
+
+## サンプルスケッチ
+
+サンプルスケッチは本リポジトリ内の`examples`フォルダ内にあります。
+
+### square_run.ino
+
+コマンドモードに入ると1m四方の四角形を描くように走行するスケッチです。  
+四角形をなぞった後は停止し続けます。  
+RCモードから再度コマンドモードに入ると再度四角形を描くように走行します。
+
+
 ---
 
 ## API リファレンス
@@ -173,6 +193,7 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 | cugoDiffDriveCtrl.SetKinematics() | 車体情報設定 |
 
 ---
+
 ### CugoCommon
 他のクラスでも使用する共通クラスです。
 
@@ -182,6 +203,13 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 
 - `pSerial`：ログ出力先シリアル。`NULL` を指定するとログを出力しない。デフォルトはSerial
 - setup( )の中で一度呼ぶこと
+
+【例】
+```cpp
+void setup() {
+   cugoCommon.Init();  // Serialに対してログ出力
+}
+```
 
 ---
 
@@ -202,7 +230,9 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 cugoCommon.SetControlMode(CUGO_RC_MODE);     // RCモードに設定
 cugoCommon.SetControlMode(CUGO_CMD_MODE);    // コマンドモードに設定
 ```
+
 ---
+
 #### 動作モード取得
 
 **bool CugoCommon::GetControlMode(uint8_t \*mode)**
@@ -214,6 +244,7 @@ cugoCommon.SetControlMode(CUGO_CMD_MODE);    // コマンドモードに設定
 uint8_t nowMode;
 cugoCommon.GetControlMode(&nowMode);   // 現在の動作モードがnowModeに入る
 ```
+
 ---
 
 #### エラー取得
@@ -245,6 +276,7 @@ cugoCommon.GetControlMode(&nowMode);   // 現在の動作モードがnowModeに�
 uint32_t nowErr;
 nowErr = cugoCommon.GetErr(); // 現在のエラーがnowErrに入る
 ```
+
 ---
 
 #### エラークリア
@@ -254,7 +286,7 @@ nowErr = cugoCommon.GetErr(); // 現在のエラーがnowErrに入る
 
 - `err`：クリアするエラーを選択。デフォルトは全エラークリア
 - 現在のエラー状況をクリアします。
-- エラーが継続中の場合はクリアしてもエラーが残ります。
+- エラーの原因が取り除かれてない場合はクリアしてもエラーが残ります。
 
 
 【例】
@@ -268,7 +300,7 @@ cugoCommon.ClearErr(CUGO_ERR_CTL_VSYS_UV);   // システム電源異常をク�
 #### 電圧取得
 
 
-**bool CugoCommon::cugoCommon.GetVoltage(uint16_t \*driverVoltage)**
+**bool CugoCommon::GetVoltage(uint16_t \*driverVoltage)**
 
 - `driverVoltage`：電源電圧（×0.1 V）
 - 通信タイムアウト時は `false` を返す。
@@ -280,6 +312,7 @@ cugoCommon.ClearErr(CUGO_ERR_CTL_VSYS_UV);   // システム電源異常をク�
 uint16_t nowVoltage;
 cugoCommon.GetVoltage(&nowVoltage); // 現在の電圧がnowVoltageに入る
 ```
+
 ---
 
 #### 待機
@@ -288,7 +321,7 @@ cugoCommon.GetVoltage(&nowVoltage); // 現在の電圧がnowVoltageに入る
 **bool CugoCommon::Wait(uint32_t time)**
 
 - `time`：待機時間（ms）。
-- 待機中にエラーが発生した場合は即座に `false` を返す。
+- 待機中にエラーが発生した場合は即座関数から抜けて `false` を返す。
 - RCモードに切り替わった場合の挙動は `SetSwitchReset()` の設定に従う。
 
 > [!WARNING]
@@ -300,6 +333,7 @@ cugoCommon.GetVoltage(&nowVoltage); // 現在の電圧がnowVoltageに入る
 ```cpp
 cugoCommon.Wait(500);   // 500ms待機
 ```
+
 ---
 
 #### RCモード切替時の動作設定
@@ -314,6 +348,7 @@ cugoCommon.Wait(500);   // 500ms待機
 ```cpp
 cugoCommon.SetSwitchReset(true);    // 動作設定
 ```
+
 ---
 
 #### 現在のRCモード切替時の動作設定取得
@@ -326,11 +361,16 @@ cugoCommon.SetSwitchReset(true);    // 動作設定
 ```cpp
 bool nowSwitchReset = cugoCommon.GetSwitchReset(); // 現在の動作設定を変数に格納する
 ```
+
 ---
 
 ### CuGoDiffDriveCtrl
 
 差動二輪ロボット（左右独立駆動）向けの走行制御クラスです。
+
+> [!WARNING]
+> このクラスは速度制御と経過時間のみにより動作するため正確な自律制御ができません。 
+> 指示した値はあくまで目安となります。
 
 #### CuGoDiffDriveCtrl関連初期化
 
@@ -366,6 +406,7 @@ cugoDiffDriveCtrl.MoveForward(-0.5, 0.2); // 0.2 m/s で 0.5 m 後進
 ```
 
 ---
+
 #### その場旋回
 
 **bool CugoDiffDriveCtrl::MoveTurn(float targetDegree, float targetSpeed = 45)**
@@ -376,11 +417,13 @@ cugoDiffDriveCtrl.MoveForward(-0.5, 0.2); // 0.2 m/s で 0.5 m 後進
 
 【例】
 ```cpp
-cugoDiffDriveCtrl.MoveTurn(90);        // 45 deg/s で 90° 反時計回りに旋回
-cugoDiffDriveCtrl.MoveTurn(-90);       // 45 deg/s で 90° 時計回りに旋回
-cugoDiffDriveCtrl.MoveTurn(180, 90);   // 90 deg/s で 180° 反時計回りに旋回
+cugoDiffDriveCtrl.MoveTurn(90.0);        // 45 deg/s で 90° 反時計回りに旋回
+cugoDiffDriveCtrl.MoveTurn(-90.0);       // 45 deg/s で 90° 時計回りに旋回
+cugoDiffDriveCtrl.MoveTurn(180.0, 50.0);   // 50 deg/s で 180° 反時計回りに旋回
 ```
+
 ---
+
 #### 曲線走行
 
 **bool CugoDiffDriveCtrl::MoveCurve(float targetRadius, float targetDegree, float targetSpeed = 0.3)**
@@ -392,11 +435,13 @@ cugoDiffDriveCtrl.MoveTurn(180, 90);   // 90 deg/s で 180° 反時計回りに�
 
 【例】
 ```cpp
-cugoDiffDriveCtrl.MoveCurve(1.0, 90);        // 半径 1.0 m の円弧を 0.3 m/s で 90° 反時計回りに走行
-cugoDiffDriveCtrl.MoveCurve(0.5, -180, 0.2); // 半径 0.5 m の円弧を 0.2 m/s で 180° 時計回りに走行
-cugoDiffDriveCtrl.MoveCurve(2.0, 360, 0.5);  // 半径 2.0 m の円を 0.5 m/s で 1 周反時計回りに走行
+cugoDiffDriveCtrl.MoveCurve(1.0, 90.0);        // 半径 1.0 m の円弧を 0.3 m/s で 90° 反時計回りに走行
+cugoDiffDriveCtrl.MoveCurve(0.5, -180.0, 0.2); // 半径 0.5 m の円弧を 0.2 m/s で 180° 時計回りに走行
+cugoDiffDriveCtrl.MoveCurve(2.0, 360.0, 0.5);  // 半径 2.0 m の円を 0.5 m/s で 1 周反時計回りに走行
 ```
+
 ---
+
 #### 動作停止
 
 **bool CugoDiffDriveCtrl::Stop(void)**
@@ -407,7 +452,9 @@ cugoDiffDriveCtrl.MoveCurve(2.0, 360, 0.5);  // 半径 2.0 m の円を 0.5 m/s �
 ```cpp
 cugoDiffDriveCtrl.Stop();  // 現在の走行を停止して速度ゼロにする
 ```
+
 ---
+
 #### 速度指定での走行
 
 **void CugoDiffDriveCtrl::SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed)**
@@ -423,6 +470,7 @@ cugoDiffDriveCtrl.SetMoveSpeed(-200, 0);  // 0.2 m/s で直進後進
 cugoDiffDriveCtrl.SetMoveSpeed(0, 785);   // その場で約 45 deg/s 反時計回りに旋回
 cugoDiffDriveCtrl.SetMoveSpeed(200, 500); // 前進しながら反時計回りに旋回（カーブ走行）
 ```
+
 ---
 
 #### 車体情報設定
@@ -449,6 +497,7 @@ cugoDiffDriveCtrl.SetMoveSpeed(200, 500); // 前進しながら反時計回り�
 // 左右のタイヤ直径が0.07716m、減速比が0.1144、トレッド幅が0.38m
 cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
 ```
+
 ---
 
 ### Crst01a（上級者向け低レベル API）
@@ -518,6 +567,7 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
 ## ファイル構成
 
 ```
+
 crst01a_arduino_lib/
 ├── src/
 │   ├── Crst01a.h / .cpp          # 車両コントローラ通信
@@ -529,6 +579,7 @@ crst01a_arduino_lib/
 ```
 
 ---
+
 ## クラス構成
 
 | クラス | ヘッダ | 概要 |
@@ -544,6 +595,7 @@ extern Crst01a          crst01a;
 extern CugoCommon       cugoCommon;
 extern CuGoDiffDriveCtrl cugoDiffDriveCtrl;
 ```
+
 ---
 
 ## ライセンス
