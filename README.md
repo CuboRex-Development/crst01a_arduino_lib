@@ -484,8 +484,6 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
 | `Crst01a::GetMotorOut(speed[4], torque[4], time)` | モータ角速度・トルク（4軸） |
 | `Crst01a::GetSbus(val[16], time)` | SBUS 16 チャンネル値 |
 
-// ... 必要な電文を個別に設定
-```
 
 #### パラメータ読み出し（要求→応答）
 
