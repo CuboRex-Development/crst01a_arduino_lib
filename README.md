@@ -473,9 +473,6 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
 
 #### 定期受信データ取得
 
-定期送信を有効にした後、次の関数でいつでも最新値を取得できます。
-`recvTime` に最終受信時刻（ms）が入るため、データの鮮度確認に使用してください。
-
 | 関数 | 取得内容 |
 |------|---------|
 | `Crst01a::GetSysStatus(...)` | コントローラステータス・エラー・電圧 |
@@ -487,10 +484,6 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
 | `Crst01a::GetMotorOut(speed[4], torque[4], time)` | モータ角速度・トルク（4軸） |
 | `Crst01a::GetSbus(val[16], time)` | SBUS 16 チャンネル値 |
 
-定期送信の有効化：
-```cpp
-crst01a.SetCycleReq(0x80);   // システムステータス（0x80）を有効化
-crst01a.SetCycleReq(0x81);   // 走行状態（0x81）を有効化
 // ... 必要な電文を個別に設定
 ```
 
@@ -506,22 +499,21 @@ crst01a.SetCycleReq(0x81);   // 走行状態（0x81）を有効化
 | `Crst01a::GetMdConfig0～5(...)` | モータドライバ設定 |
 | `Crst01a::GetRcConfig0～3(...)` | RC設定 |
 | `Crst01a::GetFwdKinematics(data[12], timeout)` | 順運動学行列（3×4） |
-| `Crst01a::GetInvKinematics(data[12], timeout)` | 逆運動学行列（3×4） |
+| `Crst01a::GetInvKinematics(data[12], timeout)` | 逆運動学行列（4×3） |
 
 ---
 
 ## 電文フォーマット
 
-```
-| Byte 0 | Byte 1   | Byte 2-9  | Byte 10 | Byte 11  |
-|--------|----------|-----------|---------|----------|
-| Header   | FuncCode | Data[0-7] | DataID  | CheckSum |
-```
 
-- `Header`：0xA0固定
-- `FuncCode`：電文ID
-- `DataID`：送信ごとにインクリメントする値
-- `CheckSum`：Byte 0〜10 の合計値（下位 1 バイト）
+| 位置 | 名前   | 意味|
+|--------|----------|----------|
+| Byte 0 | Header   | 0xA0固定 |
+| Byte 1 | FuncCode | 電文ID |
+| Byte 2-9 | Data\[0-7] | データ |
+| Byte 10 | DataID | 送信ごとにインクリメントする値 |
+| Byte 11 | CheckSum | Byte 0〜10 の合計値（下位 1 バイト） |
+
 
 ---
 
