@@ -321,7 +321,7 @@ cugoCommon.GetVoltage(&nowVoltage); // 現在の電圧がnowVoltageに入る
 **bool CugoCommon::Wait(uint32_t time)**
 
 - `time`：待機時間（ms）。
-- 待機中にエラーが発生した場合は即座関数から抜けて `false` を返す。
+- 待機中にエラーが発生した場合は即座に関数から抜けて `false` を返す。
 - RCモードに切り替わった場合の挙動は `SetSwitchReset()` の設定に従う。
 
 > [!WARNING]
@@ -474,7 +474,6 @@ cugoDiffDriveCtrl.SetMoveSpeed(200, 500); // 前進しながら反時計回り�
 ---
 
 #### 車体情報設定
-<br>
 
 **void CugoDiffDriveCtrl::SetKinematics(float leftTireDiameter, float rightTireDiameter,
                    float leftGearRatio,    float rightGearRatio,
