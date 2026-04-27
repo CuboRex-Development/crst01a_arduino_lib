@@ -61,6 +61,9 @@ Crst01a::Crst01a(void):iTimer0(0){
 	l_recvSbus1.recvTime = 0;
 	l_recvSbus2.recvTime = 0;
 	l_recvSbus3.recvTime = 0;
+	
+	l_recvBumperBrake.recvTime = 0;
+	
 	for(int j = 0; j < 6; j++){
 		l_recvFwdKinematics[j].recvTime = 0;
 		l_recvInvKinematics[j].recvTime = 0;
@@ -1066,6 +1069,35 @@ bool Crst01a::GetBumperBrake(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32
 	}
 }
 
+// バンパー、ブレーキ設定読み出し(0xC4)の要求を送るだけ
+// バンパーとブレーキの設定要求を送信します。
+// ROS用アプリで使いたいため実装
+// 引数：なし
+// 戻り値：なし
+void Crst01a::GetBumperBrakeReq(void){
+	SetReq(CRST_FUNC_READ_BUMPER_BRAKE);			// 送信要求
+	SetWaitFunkCode(CRST_FUNC_READ_BUMPER_BRAKE);	// 応答待ち
+}
+
+// バンパー、ブレーキ設定読み出し(0xC4)の結果を受け取るだけ
+// 受信しているバンパーとブレーキの設定を取得します。
+// ROS用アプリで使いたいため実装
+// 未受信の場合はtimeが0になる。
+// timeはmillis()の値が入るので、最近の値かは読んだ側がチェックする。
+// 引数：bumperConfig：バンパー設定格納先
+// 　　　brakeConfig：ブレーキ設定格納先
+// 　　　time：受信時刻(ms)格納先
+// 戻り値：なし
+void Crst01a::GetBumperBrakeRes(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32_t *time){
+	
+	uint32_t irq_state;
+	
+	irq_state = save_and_disable_interrupts();	// 割り込み禁止
+	*bumperConfig = l_recvBumperBrake.msg.data[0];
+	*brakeConfig = l_recvBumperBrake.msg.data[1];
+	*time = l_recvBumperBrake.recvTime;
+	restore_interrupts(irq_state);				// 割り込み許可
+}
 
 // バージョン読み出し(0xC5)
 // 車両コントローラのファームウェアバージョンを取得します。
@@ -1661,6 +1693,10 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_SBUS_3:			// SBUS読み出し (Ch 13-16)
 						l_recvSbus3.msg = buf;
 						l_recvSbus3.recvTime = millis();
+						break;
+					case CRST_FUNC_READ_BUMPER_BRAKE:	// バンパー、ブレーキ設定読み出し (0x44)
+						l_recvBumperBrake.msg = buf;
+						l_recvBumperBrake.recvTime = millis();
 						break;
 					case CRST_FUNC_READ_FWD_KINEMATICS_0:
 					case CRST_FUNC_READ_FWD_KINEMATICS_1:

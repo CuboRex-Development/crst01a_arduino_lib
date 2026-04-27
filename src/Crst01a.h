@@ -135,6 +135,8 @@ class Crst01a{
 		bool GetDataPeriodic(uint8_t *frequency, uint8_t *data, uint32_t timeout = 200);									// データ定期送信読み出し(0xC0)
 		bool GetMaxSpeed(uint16_t *xSpeed, uint16_t *ySpeed, uint16_t *yawSpeed, uint32_t timeout = 200);					// 最大速度設定読み出し(0xC1)
 		bool GetBumperBrake(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32_t timeout = 200);							// バンパー、ブレーキ設定読み出し(0xC4)
+		void GetBumperBrakeReq(void);																						// バンパー、ブレーキ設定読み出し(0xC4)の要求を送るだけ
+		void GetBumperBrakeRes(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32_t *time);								// バンパー、ブレーキ設定読み出し(0xC4)の結果を受け取るだけ
 		bool GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2, uint32_t timeout = 200);								// バージョン読み出し(0xC5)
 		bool GetVoltageConfig(uint16_t *minVol, uint16_t *maxVol, uint32_t timeout = 200);	// 電圧設定読み出し(0xC8)
 		bool GetMdConfig0(uint16_t *existFlag, uint32_t timeout = 200);					// モータドライバ設定0読み出し(0xD0)
@@ -192,6 +194,8 @@ class Crst01a{
 		telegram_time_t l_recvSbus1;
 		telegram_time_t l_recvSbus2;
 		telegram_time_t l_recvSbus3;
+		// 特例として単発応答を保持する変数
+		telegram_time_t l_recvBumperBrake;
 		// 運動学応答を保持する変数
 		telegram_time_t l_recvFwdKinematics[6];	// 順運動学数列 (0xE0-0xE5)
 		telegram_time_t l_recvInvKinematics[6];	// 逆運動学数列 (0xF0-0xF5)
