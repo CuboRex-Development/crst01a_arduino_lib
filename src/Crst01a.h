@@ -91,6 +91,8 @@
 #define CRST_FUNC_READ_INV_KINEMATICS_4	(0xF4)	// 逆運動学行列読み出し (0x74)
 #define CRST_FUNC_READ_INV_KINEMATICS_5	(0xF5)	// 逆運動学行列読み出し (0x75)
 
+#define SEND_BUF_SIZE	20						// 送信用バッファサイズ
+
 class Crst01a{
 
 	public:
@@ -171,6 +173,7 @@ class Crst01a{
 		}telegram_time_t;
 
 		static bool TimerHandler0(struct repeating_timer *t);
+		void SetCmd(void);
 		void GetCmd(void);
 
 		RPI_PICO_Timer iTimer0;
@@ -203,11 +206,15 @@ class Crst01a{
 		telegram_t l_RecvTelegram;
 		// data idを保持する変数
 		uint8_t l_dataId;
+		// 送信電文を保持する変数
+		telegram_t l_sendBuf[SEND_BUF_SIZE];	// 送信用バッファ
+		uint8_t l_sendBufCount;					// 送信バッファ内のデータ数
 		
 		uint16_t GetWaitFunkCode(void);				// 受信待ちフラグの取得関数
 		void SetWaitFunkCode(uint16_t waitFunkCode);// 受信待ちフラグの設定関数
 		uint8_t CalcCheckSum(telegram_t *p);		// チェックサムの計算
 		uint8_t CalcAddDataId(void);				// data idのインクリメント
+		bool SendData(telegram_t *p);				// 送信用バッファにデータの格納
 };
 
 extern Crst01a crst01a;
