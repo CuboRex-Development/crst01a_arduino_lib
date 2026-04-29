@@ -1615,7 +1615,7 @@ void Crst01a::SetCmd(void){
 	
 	// 送信データがないならタイムアウト防止用にエラー解除(0x00なのでなにも解除しない)
 	if(0 == l_sendBufCount){
-//		ClearDriverError(0x00);
+		ClearDriverError(0x00);
 	}
 	
 	// 送信バッファ内のデータを送信
