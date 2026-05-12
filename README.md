@@ -3,7 +3,7 @@
 CuGo V4.5等に搭載されたCuboRex製車両コントローラ(CRST01A)を Raspberry Pi Pico 2 W から制御するための Arduino ライブラリです。  
 
 現在の対象商品
-- CuGo V4.5
+- [CuGo V4.5](https://cuborex.com/product/?id=33) 
 
 ---
 
@@ -607,3 +607,4 @@ extern CuGoDiffDriveCtrl cugoDiffDriveCtrl;
 
 - [CuboRex 公式サイト](https://cuborex.com)
 - [GitHub リポジトリ](https://github.com/CuboRex-Development/crst01a_arduino_lib)
+- [CuGo V4.5　商品ページ](https://cuborex.com/product/?id=33)
