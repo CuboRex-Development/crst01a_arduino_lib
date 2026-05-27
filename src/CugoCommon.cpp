@@ -5,6 +5,8 @@
 #define PC_PRINTLN(str)	if(NULL != l_pSerial){l_pSerial->println(str);}
 #define PC_PRINT(str)	if(NULL != l_pSerial){l_pSerial->print(str);}
 #define RECV_TIMEOUT	(500)		// 受信した定期送信系データが古いと判断する閾値
+#define MIN_VOLTAGE		15
+#define MAX_VOLTAGE		52
 
 CugoCommon cugoCommon;
 
@@ -187,5 +189,35 @@ bool CugoCommon::GetControlMode(uint8_t *mode){
 		return false;
 	}
 	
+	return true;
+}
+
+
+// パラメータ保存
+// 現在のパラメータをフラッシュメモリに保存する
+// 引数：なし
+// 戻り値：成功時 true、失敗・タイムアウト時 false
+bool CugoCommon::SaveParamReq(void){
+	
+	return crst01a.SaveParamReq(500);
+}
+
+
+// 電圧上下限設定
+// 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
+// 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
+// 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
+// 戻り値：設定値が正常時にtrue
+bool CugoCommon::SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
+
+	if(MIN_VOLTAGE > driverMinVoltage){
+		return false;
+	}
+	
+	if(MAX_VOLTAGE < driverMaxVoltage){
+		return false;
+	}
+	
+	crst01a.SetVoltage(driverMinVoltage, driverMaxVoltage);
 	return true;
 }

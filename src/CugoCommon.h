@@ -56,6 +56,8 @@ class CugoCommon{
 		bool Wait(uint32_t time);
 		void SetControlMode(uint8_t mode);
 		bool GetControlMode(uint8_t *mode);
+		bool SaveParamReq(void);
+		bool SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage);
 		
 	private:
 		HardwareSerial *l_pSerial;
