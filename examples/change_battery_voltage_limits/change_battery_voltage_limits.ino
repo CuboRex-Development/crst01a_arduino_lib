@@ -10,7 +10,7 @@ void setup() {
 
 void loop() {
 
-	cugoCommon.SetVoltage(18,32);	// 18V以下、32V以上で電圧異常と判断する設定
+	cugoCommon.SetVoltage(180,320);	// 18V以下、32V以上で電圧異常と判断する設定
 	
 	cugoCommon.SaveParamReq();		// フラッシュメモリに保存
 	

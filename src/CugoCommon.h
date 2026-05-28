@@ -57,7 +57,10 @@ class CugoCommon{
 		void SetControlMode(uint8_t mode);
 		bool GetControlMode(uint8_t *mode);
 		bool SaveParamReq(void);
-		bool SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage);
+		bool SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage);
+		bool GetVoltageConfig(uint16_t *driverMinVoltage, uint16_t *driverMaxVoltage);
+		bool GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2);
+		
 		
 	private:
 		HardwareSerial *l_pSerial;

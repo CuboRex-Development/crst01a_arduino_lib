@@ -531,7 +531,7 @@ void Crst01a::SetBumperBrake(uint8_t bumperConfig, uint8_t brakeConfig){
 // 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
 // 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
 // 戻り値：なし
-void Crst01a::SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
+void Crst01a::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
 
 	telegram_t sendTelegram;
 

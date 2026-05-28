@@ -208,7 +208,7 @@ bool CugoCommon::SaveParamReq(void){
 // 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
 // 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
 // 戻り値：設定値が正常時にtrue
-bool CugoCommon::SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
+bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
 
 	if(MIN_VOLTAGE > driverMinVoltage){
 		return false;
@@ -218,6 +218,29 @@ bool CugoCommon::SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage
 		return false;
 	}
 	
-	crst01a.SetVoltage(driverMinVoltage, driverMaxVoltage);
+	crst01a.GetVoltageConfig(&driverMinVoltage, &driverMaxVoltage);
 	return true;
+}
+
+
+// 電圧上下限設定
+// 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
+// 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
+// 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
+// 戻り値：設定値が正常時にtrue
+bool CugoCommon::GetVoltageConfig(uint16_t *driverMinVoltage, uint16_t *driverMaxVoltage){
+
+	return crst01a.GetVoltageConfig(driverMinVoltage, driverMaxVoltage);
+}
+
+
+// バージョン読み出し
+// 車両コントローラのファームウェアバージョンを取得する。
+// 引数：ver0：メジャーバージョン
+// 　　　ver1：マイナーバージョン
+// 　　　ver2：パッチバージョン
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2){
+	
+	return crst01a.GetVersion(ver0, ver1, ver2, 500);
 }
