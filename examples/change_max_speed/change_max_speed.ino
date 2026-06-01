@@ -17,11 +17,6 @@ void loop() {
 	
 	cugoCommon.SaveParamReq();				// フラッシュメモリに保存
 	
-	// 処理終了を知らせるLED点滅
-	while(1){
-		digitalWrite(LED_BUILTIN, HIGH);
-		delay(1000);
-		digitalWrite(LED_BUILTIN, LOW);
-		delay(1000);
-	}
+	// 処理終了を知らせるLED点灯
+	cugoCommon.LedPrint(false);
 }

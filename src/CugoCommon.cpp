@@ -244,3 +244,25 @@ bool CugoCommon::GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2){
 	
 	return crst01a.GetVersion(ver0, ver1, ver2, 500);
 }
+
+
+// Raspberry Pi Pico 2 Wに搭載のLEDを操作する
+// LEDを点灯したり点滅させたりしてアプリの状態を表示したい。
+// ライブラリのサンプル等共通した動作にしたいため実装。
+// 引数：blink：点滅させたいときにtrue
+// 戻り値：なし
+void CugoCommon::LedPrint(bool err){
+	
+	while(1){
+		if(err){
+			digitalWrite(LED_BUILTIN, HIGH);
+			delay(150);
+			digitalWrite(LED_BUILTIN, LOW);
+			delay(150);
+		}
+		else{
+			digitalWrite(LED_BUILTIN, HIGH);
+			delay(300);
+		}
+	}
+}

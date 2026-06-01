@@ -162,36 +162,61 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 
 サンプルスケッチは本リポジトリ内の`examples`フォルダ内にあります。
 
-### square_run.ino
+Arduino IDEからは以下の手順で開きます。
+
+1. Arduino IDE で **ファイル ＞ スケッチ例  ＞ カスタムライブラリのスケッチ例 ＞ crst01a_arduino_lib** から開きたいサンプルを選択します。
+<img width="674" height="586" alt="image" src="https://github.com/user-attachments/assets/e5c8e1d6-e6fa-4308-b8df-2bf3c09f03a8" />
+
+
+### square_run
 
 コマンドモードに入ると1m四方の四角形を描くように走行するスケッチです。  
 四角形をなぞった後は停止し続けます。  
 RCモードから再度コマンドモードに入ると再度四角形を描くように走行します。
 
-### change_max_speed.ino
+### change_max_speed
 
 最高速度を変更するスケッチです。  
 変更後に車両コントローラのフラッシュメモリへ保存します。
+
+cugoDiffDriveCtrl.SetMaxSpeed()で走行速度と旋回速度を設定します。  
+第一引数で走行速度(0.001m/s単位)、第二引数で旋回速度(0.001rad/s単位)を指定します。  
+【例】
+```cpp
+cugoDiffDriveCtrl.SetMaxSpeed(1222,1500); // 走行速度を1.222m/s(4.4km/h)と1.5rad/sに設定
+```
+
 > [!WARNING]
 >フラッシュメモリへ書き込むため、パラメータ変更後は別のスケッチを書き込むことを推奨しています。
->check_read.ino等のフラッシュメモリへ書き込まないスケッチを書き込んで運用していただきたいです。
+>check_read(サンプルスケッチ)等のフラッシュメモリへ書き込まないスケッチを書き込んで運用していただきたいです。
 
-### change_battery_voltage_limits.ino
+### change_battery_voltage_limits
 
-電圧の上下限設定を変更するスケッチです。
+電圧の上下限設定を変更するスケッチです。  
 変更後に車両コントローラのフラッシュメモリへ保存します。
+
+cugoCommon.SetVoltage()で電源電圧の上下限を設定します。  
+第一引数で下限電圧(0.1V単位)、第二引数で上限電圧(0.1V単位)を指定します。  
+基板の電圧取得機能の精度があまりよくないので、実際の値より多少広く設定することをお勧めします。  
+【例】
+```cpp
+cugoCommon.SetVoltage(180,320);	// 18V以下、32V以上で電圧異常と判断する設定
+```
+
 > [!WARNING]
 >フラッシュメモリへ書き込むため、パラメータ変更後は別のスケッチを書き込むことを推奨しています。
->check_read.ino等のフラッシュメモリへ書き込まないスケッチを書き込んで運用していただきたいです。
+>check_read(サンプルスケッチ)等のフラッシュメモリへ書き込まないスケッチを書き込んで運用していただきたいです。
 
-### check_read.ino
+### check_read
 
 以下の情報を読み取りシリアル通信で送信するスケッチです。
-シリアル通信はRaspberry Pi Pico 2 Wのmicro USBを使用し、ボーレートは115.2kbpsです。
 - 車両コントローラのバージョン
 - 最高速度
 - 電圧の上下限設定
 
+シリアル通信はRaspberry Pi Pico 2 Wのmicro USBを使用し、ボーレートは115.2kbpsです。  
+ロボットの電源を入れてから5秒以内にPCとUSBケーブルで接続し、シリアルモニタで情報を確認してください。  
+ロボットの電源を入れるより先にPCとつないだ場合はロボットの電源が入ってないため通信が失敗します。  
 
 ---
 
@@ -262,6 +287,7 @@ cugoCommon.SetControlMode(CUGO_CMD_MODE);    // コマンドモードに設定
 **bool CugoCommon::GetControlMode(uint8_t \*mode)**
 
 - `mode`：現在のモード格納先。
+- 通信タイムアウト時は `false` を返す。
 
 【例】
 ```cpp
@@ -593,11 +619,14 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
 
 crst01a_arduino_lib/
 ├── src/
-│   ├── Crst01a.h / .cpp          # 車両コントローラ通信
-│   ├── CugoCommon.h / .cpp       # 共通処理
-│   └── CugoDiffDriveCtrl.h / .cpp# 差動二輪走行制御
+│   ├── Crst01a.h / .cpp              # 車両コントローラ通信
+│   ├── CugoCommon.h / .cpp           # 共通処理
+│   └── CugoDiffDriveCtrl.h / .cpp    # 差動二輪走行制御
 ├── examples/
-│   └── square_run/               # 正方形走行サンプル
+│   ├── square_run/                   # 正方形走行サンプル
+│   ├── change_max_speed/             # 最高速度変更サンプル
+│   ├── change_battery_voltage_limits/# 電圧の上下限設定サンプル
+│   └── check_read/                   # 変更確認サンプル
 └── library.properties
 ```
 
