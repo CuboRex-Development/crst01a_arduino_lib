@@ -180,6 +180,11 @@ RCモードから再度コマンドモードに入ると再度四角形を描く
 変更後に車両コントローラのフラッシュメモリへ保存します。  
 動作終了後はRaspberry Pi Pico 2 W上のLEDが点灯します。  
 
+[!IMPORTANT]
+>スケッチ実行直後に設定がロボットに反映されます。スケッチ実行時にロボットの電源が切れている場合は反映されません。    
+>スケッチ書き込み後はロボットの電源を切り、PCとUSBケーブルでの接続を切ります。  
+>再度ロボットの電源を入れて確実にスケッチを実行してください。  
+
 cugoDiffDriveCtrl.SetMaxSpeed()で走行速度と旋回速度を設定します。  
 第一引数で走行速度(0.001m/s単位)、第二引数で旋回速度(0.001rad/s単位)を指定します。  
 【例】
@@ -187,9 +192,9 @@ cugoDiffDriveCtrl.SetMaxSpeed()で走行速度と旋回速度を設定します�
 cugoDiffDriveCtrl.SetMaxSpeed(1222,1500); // 走行速度を1.222m/s(4.4km/h)と1.5rad/sに設定
 ```
 
-> [!WARNING]
->フラッシュメモリへ書き込むため、パラメータ変更後は別のスケッチを書き込むことを推奨しています。
->check_read(サンプルスケッチ)等のフラッシュメモリへ書き込まないスケッチを書き込んで運用していただきたいです。
+[!CAUTION]
+>フラッシュメモリへ書き込むため、パラメータ変更後は別のスケッチを書き込んでください。  
+>check_read(サンプルスケッチ)等のフラッシュメモリへ書き込みを行わないスケッチを書き込み、運用してください。  
 
 ### change_battery_voltage_limits
 
@@ -197,17 +202,22 @@ cugoDiffDriveCtrl.SetMaxSpeed(1222,1500); // 走行速度を1.222m/s(4.4km/h)と
 変更後に車両コントローラのフラッシュメモリへ保存します。  
 動作終了後はRaspberry Pi Pico 2 W上のLEDが点灯します。  
 
+[!IMPORTANT]
+>スケッチ実行直後に設定がロボットに反映されます。スケッチ実行時にロボットの電源が切れている場合は反映されません。    
+>スケッチ書き込み後はロボットの電源を切り、PCとUSBケーブルでの接続を切ります。  
+>再度ロボットの電源を入れて確実にスケッチを実行してください。  
+
 cugoCommon.SetVoltage()で電源電圧の上下限を設定します。  
 第一引数で下限電圧(0.1V単位)、第二引数で上限電圧(0.1V単位)を指定します。  
-基板の電圧取得機能の精度があまりよくないので、実際の値より多少広く設定することをお勧めします。  
+基板における電圧取得精度の特性上、設定値にはある程度の許容幅を持たせることを推奨します。  
 【例】
 ```cpp
 cugoCommon.SetVoltage(180,320);	// 18V以下、32V以上で電圧異常と判断する設定
 ```
 
-> [!WARNING]
->フラッシュメモリへ書き込むため、パラメータ変更後は別のスケッチを書き込むことを推奨しています。
->check_read(サンプルスケッチ)等のフラッシュメモリへ書き込まないスケッチを書き込んで運用していただきたいです。
+[!CAUTION]
+>フラッシュメモリへ書き込むため、パラメータ変更後は別のスケッチを書き込んでください。  
+>check_read(サンプルスケッチ)等のフラッシュメモリへ書き込みを行わないスケッチを書き込み、運用してください。
 
 ### check_read
 
@@ -219,9 +229,10 @@ cugoCommon.SetVoltage(180,320);	// 18V以下、32V以上で電圧異常と判断
 
 読み取りに失敗した場合はRaspberry Pi Pico 2 W上のLEDが点滅します。  
 
-シリアル通信はRaspberry Pi Pico 2 Wのmicro USBを使用し、ボーレートは115.2kbpsです。  
-ロボットの電源を入れてから5秒以内にPCとUSBケーブルで接続し、シリアルモニタで情報を確認してください。  
-ロボットの電源を入れるより先にPCとつないだ場合はロボットの電源が入ってないため通信が失敗します。  
+[!IMPORTANT]
+>シリアル通信はRaspberry Pi Pico 2 Wのmicro USBを使用し、ボーレートは115.2kbpsです。  
+>ロボットの電源を切り、PCとUSBケーブルでの接続を切ります。ロボットの電源を入れてから5秒以内にPCとUSBケーブルで接続し、シリアルモニタで情報を確認してください。  
+>ロボットの電源を入れるより先にPCとつないだ場合はロボットの電源が入ってないため通信が失敗します。  
 
 ---
 
@@ -238,6 +249,10 @@ cugoCommon.SetVoltage(180,320);	// 18V以下、32V以上で電圧異常と判断
 | cugoCommon.Wait() | 待機 |
 | cugoCommon.SetSwitchReset() | RCモード切替時の動作設定 |
 | cugoCommon.GetSwitchReset() | RCモード切替時の動作設定取得 |
+| cugoCommon.SaveParamReq() | パラメータ保存 |
+| cugoCommon.SetVoltageConfig() | 電圧異常の閾値設定 |
+| cugoCommon.GetVoltageConfig() | 電圧異常の閾値設定取得 |
+| cugoCommon.GetVersion() | バージョン取得 |
 | cugoDiffDriveCtrl.Init() | CuGoDiffDriveCtrl関連初期化 |
 | cugoDiffDriveCtrl.MoveForward() | 直進走行 |
 | cugoDiffDriveCtrl.MoveTurn() | その場旋回 |
@@ -245,6 +260,8 @@ cugoCommon.SetVoltage(180,320);	// 18V以下、32V以上で電圧異常と判断
 | cugoDiffDriveCtrl.Stop() | 動作停止 |
 | cugoDiffDriveCtrl.SetMoveSpeed() | 速度指定での走行 |
 | cugoDiffDriveCtrl.SetKinematics() | 車体情報設定 |
+| cugoDiffDriveCtrl.SetMaxSpeed() | 最大速度設定 |
+| cugoDiffDriveCtrl.GetMaxSpeed() | 最大速度設定取得 |
 
 ---
 
@@ -419,6 +436,75 @@ bool nowSwitchReset = cugoCommon.GetSwitchReset(); // 現在の動作設定を�
 
 ---
 
+#### パラメータ保存
+
+**bool CugoCommon::SaveParamReq(void)**
+
+- 現在のパラメータをフラッシュメモリに保存する。
+- 通信タイムアウト時は `false` を返す。
+
+【例】
+```cpp
+cugoCommon.SaveParamReq();				// フラッシュメモリに保存
+```
+
+---
+
+#### 電圧上下限設定
+
+**bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage)**
+
+- `driverMinVoltage`：電圧異常の下限値（×0.1 V）
+- `driverMaxVoltage`：電圧異常の上限値（×0.1 V）
+- 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
+- 設定値が範囲外の場合は `false` を返す。
+- 設定可能な値は150～520(15V～52V)。
+- V4.5のデフォルトは下限値が180(18.0V)、上限値が320(32.0V)。
+
+【例】
+```cpp
+cugoCommon.SetVoltageConfig(180,320);	// 18V以下、32V以上で電圧異常と判断する設定
+```
+
+---
+
+#### 電圧上下限設定取得
+
+**bool CugoCommon::GetVoltageConfig(uint16_t *pDriverMinVoltage, uint16_t *pDriverMaxVoltage)**
+
+- `pDriverMinVoltage`：電圧異常の下限値（×0.1 V）
+- `pDriverMaxVoltage`：電圧異常の上限値（×0.1 V）
+- 車両コントローラが電圧異常と検知する電圧の設定を取得する。
+- 通信タイムアウト時は `false` を返す。
+
+【例】
+```cpp
+uint16_t driverMinVoltage,driverMaxVoltage;
+
+cugoCommon.GetVoltageConfig(&driverMinVoltage, &driverMaxVoltage);
+```
+
+---
+
+#### バージョン取得
+
+**bool CugoCommon::GetVersion(uint8_t *pVer0, uint8_t *pVer1, uint8_t *pVer2)**
+
+- `pVer0`：メジャーバージョン
+- `pVer1`：マイナーバージョン
+- `pVer2`：パッチバージョン
+- 車両コントローラのバージョンを取得する。
+- 通信タイムアウト時は `false` を返す。
+
+【例】
+```cpp
+uint8_t ver0,ver1,ver2;
+
+cugoCommon.GetVersion(&ver0, &ver1, &ver2);
+```
+
+---
+
 ### CuGoDiffDriveCtrl
 
 差動二輪ロボット（左右独立駆動）向けの走行制御クラスです。
@@ -540,7 +626,6 @@ cugoDiffDriveCtrl.SetMoveSpeed(200, 500); // 前進しながら反時計回り�
 - `rightGearRatio`：右減速比。減速している場合は 1 未満の値を指定する。
 - `tread`：左右タイヤ間距離（m）
 - 指定した値から順運動学・逆運動学行列を計算して CRST01A に書き込む。
-- 値は CRST01A のフラッシュに書き込まれ、電源を切っても保持される。
 > [!IMPORTANT]
 > ロボットの足回りを変更した場合は変更に合わせてパラメータを変更する必要があります。  
 > 出荷時から変更していない場合は設定する必要がありません。  
@@ -550,6 +635,40 @@ cugoDiffDriveCtrl.SetMoveSpeed(200, 500); // 前進しながら反時計回り�
 ```cpp
 // 左右のタイヤ直径が0.07716m、減速比が0.1144、トレッド幅が0.38m
 cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144,0.1144,0.38);
+```
+
+---
+
+#### 最大速度設定
+
+**void CugoDiffDriveCtrl::SetMaxSpeed(uint16_t xSpeed, uint16_t yawSpeed)**
+
+- `xSpeed`：走行速度(0.001m/s単位)
+- `yawSpeed`：旋回速度(0.001rad/s単位)
+- 走行速度と旋回速度の最大を設定する。
+- V4.5のデフォルトは走行速度が1.0m/s、旋回速度が1.5rad/s。
+- V4.5の最高速度は走行速度が1.222m/s、旋回速度が6.42rad/s。
+
+【例】
+```cpp
+cugoDiffDriveCtrl.SetMaxSpeed(1222,1500);	// 走行速度を1.222m/s(4.4km/h)と1.5rad/sに設定
+```
+
+---
+
+#### 最大速度設定取得
+
+**void CugoDiffDriveCtrl::GetMaxSpeed(uint16_t *pXSpeed, uint16_t *pYawSpeed)**
+
+- `pXSpeed`：走行速度(0.001m/s単位)
+- `pYawSpeed`：旋回速度(0.001rad/s単位)
+- 走行速度と旋回速度の最大設定を取得する。
+
+【例】
+```cpp
+uint16_t x,yaw;
+
+cugoDiffDriveCtrl.GetMaxSpeed(&x, &yaw);
 ```
 
 ---
