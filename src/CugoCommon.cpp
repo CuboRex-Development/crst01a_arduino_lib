@@ -5,8 +5,8 @@
 #define PC_PRINTLN(str)	if(NULL != l_pSerial){l_pSerial->println(str);}
 #define PC_PRINT(str)	if(NULL != l_pSerial){l_pSerial->print(str);}
 #define RECV_TIMEOUT	(500)		// 受信した定期送信系データが古いと判断する閾値
-#define MIN_VOLTAGE		15
-#define MAX_VOLTAGE		52
+#define MIN_VOLTAGE		150
+#define MAX_VOLTAGE		520
 
 CugoCommon cugoCommon;
 
@@ -228,9 +228,9 @@ bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxV
 // 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
 // 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
 // 戻り値：設定値が正常時にtrue
-bool CugoCommon::GetVoltageConfig(uint16_t *driverMinVoltage, uint16_t *driverMaxVoltage){
+bool CugoCommon::GetVoltageConfig(uint16_t *pDriverMinVoltage, uint16_t *pDriverMaxVoltage){
 
-	return crst01a.GetVoltageConfig(driverMinVoltage, driverMaxVoltage);
+	return crst01a.GetVoltageConfig(pDriverMinVoltage, pDriverMaxVoltage);
 }
 
 
@@ -240,9 +240,9 @@ bool CugoCommon::GetVoltageConfig(uint16_t *driverMinVoltage, uint16_t *driverMa
 // 　　　ver1：マイナーバージョン
 // 　　　ver2：パッチバージョン
 // 戻り値：成功時 true、タイムアウト時 false
-bool CugoCommon::GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2){
+bool CugoCommon::GetVersion(uint8_t *pVer0, uint8_t *pVer1, uint8_t *pVer2){
 	
-	return crst01a.GetVersion(ver0, ver1, ver2, 500);
+	return crst01a.GetVersion(pVer0, pVer1, pVer2, 500);
 }
 
 

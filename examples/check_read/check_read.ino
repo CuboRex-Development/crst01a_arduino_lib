@@ -39,10 +39,10 @@ void setup() {
 		Serial.println("rad/s");
 		
 		Serial.print("電圧異常の下限：");
-		Serial.print(driverMinVoltage);
+		Serial.print((float)driverMinVoltage/10,1);
 		Serial.println("V");
 		Serial.print("電圧異常の上限：");
-		Serial.print(driverMaxVoltage);
+		Serial.print((float)driverMaxVoltage/10,1);
 		Serial.println("V");
 		
 		err = false;
