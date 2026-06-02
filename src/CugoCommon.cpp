@@ -210,15 +210,15 @@ bool CugoCommon::SaveParamReq(void){
 // 戻り値：設定値が正常時にtrue
 bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
 
-	if(MIN_VOLTAGE > driverMinVoltage){
+	if((MIN_VOLTAGE > driverMinVoltage) || (MAX_VOLTAGE < driverMinVoltage)){
 		return false;
 	}
 	
-	if(MAX_VOLTAGE < driverMaxVoltage){
+	if((MIN_VOLTAGE > driverMaxVoltage) || (MAX_VOLTAGE < driverMaxVoltage)){
 		return false;
 	}
 	
-	crst01a.GetVoltageConfig(&driverMinVoltage, &driverMaxVoltage);
+	crst01a.SetVoltageConfig(driverMinVoltage, driverMaxVoltage);
 	return true;
 }
 
