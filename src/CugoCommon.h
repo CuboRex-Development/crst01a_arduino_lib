@@ -56,6 +56,12 @@ class CugoCommon{
 		bool Wait(uint32_t time);
 		void SetControlMode(uint8_t mode);
 		bool GetControlMode(uint8_t *mode);
+		bool SaveParamReq(void);
+		bool SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage);
+		bool GetVoltageConfig(uint16_t *pDriverMinVoltage, uint16_t *pDriverMaxVoltage);
+		bool GetVersion(uint8_t *pVer0, uint8_t *pVer1, uint8_t *pVer2);
+		void LedPrint(bool err);
+		
 		
 	private:
 		HardwareSerial *l_pSerial;

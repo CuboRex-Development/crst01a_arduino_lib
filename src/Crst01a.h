@@ -113,7 +113,7 @@ class Crst01a{
 		void ClearCycleReq(uint8_t id);													// データ定期送信設定(0x40)(クリア)
 		void SetSpeed(uint16_t xSpeed, uint16_t ySpeed, uint16_t yawSpeed);				// 最大速度設定(0x41)
 		void SetBumperBrake(uint8_t bumperConfig, uint8_t brakeConfig);					// バンパー、ブレーキ設定(0x44)
-		void SetVoltage(uint16_t driverMinVoltage, uint16_t driverMaxVoltage);			// 電圧設定(0x48)
+		void SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage);			// 電圧設定(0x48)
 		void SetMdConfig0(uint16_t driveMotorExistFlag);								// モータドライバ設定0(0x50)
 		void SetMdConfig1(float motorMaxGbSpeed);										// モータドライバ設定1(0x51)
 		void SetMdConfig2(float judgeToStopRPM);										// モータドライバ設定2(0x52)

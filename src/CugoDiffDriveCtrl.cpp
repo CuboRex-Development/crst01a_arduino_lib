@@ -328,3 +328,24 @@ void CugoDiffDriveCtrl::SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed){
 		}
 	}
 }
+
+
+// 最大速度変更
+// 引数：xSpeed：前進方向の最大速度 (値×0.001m/s)
+// 　　　yawSpeed：最大旋回速度 (値×0.001rad/s)
+// 戻り値：なし
+void CugoDiffDriveCtrl::SetMaxSpeed(uint16_t xSpeed, uint16_t yawSpeed){
+	crst01a.SetSpeed(xSpeed, 0, yawSpeed);
+}
+
+
+// 最大速度取得
+// 引数：xSpeed：進行方向最大速度格納先
+// 　　　yawSpeed：最大旋回速度格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoDiffDriveCtrl::GetMaxSpeed(uint16_t *pXSpeed, uint16_t *pYawSpeed){
+	
+	uint16_t ySpeed;
+	
+	return crst01a.GetMaxSpeed(pXSpeed, &ySpeed, pYawSpeed);
+}

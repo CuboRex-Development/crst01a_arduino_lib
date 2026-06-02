@@ -5,6 +5,8 @@
 #define PC_PRINTLN(str)	if(NULL != l_pSerial){l_pSerial->println(str);}
 #define PC_PRINT(str)	if(NULL != l_pSerial){l_pSerial->print(str);}
 #define RECV_TIMEOUT	(500)		// 受信した定期送信系データが古いと判断する閾値
+#define MIN_VOLTAGE		150
+#define MAX_VOLTAGE		520
 
 CugoCommon cugoCommon;
 
@@ -188,4 +190,79 @@ bool CugoCommon::GetControlMode(uint8_t *mode){
 	}
 	
 	return true;
+}
+
+
+// パラメータ保存
+// 現在のパラメータをフラッシュメモリに保存する
+// 引数：なし
+// 戻り値：成功時 true、失敗・タイムアウト時 false
+bool CugoCommon::SaveParamReq(void){
+	
+	return crst01a.SaveParamReq(500);
+}
+
+
+// 電圧上下限設定
+// 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
+// 引数：driverMinVoltage：電圧が低いと判定する電圧 (値×0.1V)
+// 　　　driverMaxVoltage：電圧が高いと判定する電圧 (値×0.1V)
+// 戻り値：設定値が正常時にtrue
+bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
+
+	if((MIN_VOLTAGE > driverMinVoltage) || (MAX_VOLTAGE < driverMinVoltage)){
+		return false;
+	}
+	
+	if((MIN_VOLTAGE > driverMaxVoltage) || (MAX_VOLTAGE < driverMaxVoltage)){
+		return false;
+	}
+	
+	crst01a.SetVoltageConfig(driverMinVoltage, driverMaxVoltage);
+	return true;
+}
+
+
+// 電圧上下限取得
+// 車両コントローラが電圧異常と検知する電圧の上下限を取得する。
+// 引数：driverMinVoltage：電圧が低いと判定する電圧 (値×0.1V)
+// 　　　driverMaxVoltage：電圧が高いと判定する電圧 (値×0.1V)
+// 戻り値：設定値が正常時にtrue
+bool CugoCommon::GetVoltageConfig(uint16_t *pDriverMinVoltage, uint16_t *pDriverMaxVoltage){
+
+	return crst01a.GetVoltageConfig(pDriverMinVoltage, pDriverMaxVoltage);
+}
+
+
+// バージョン読み出し
+// 車両コントローラのファームウェアバージョンを取得する。
+// 引数：ver0：メジャーバージョン
+// 　　　ver1：マイナーバージョン
+// 　　　ver2：パッチバージョン
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetVersion(uint8_t *pVer0, uint8_t *pVer1, uint8_t *pVer2){
+	
+	return crst01a.GetVersion(pVer0, pVer1, pVer2, 500);
+}
+
+
+// Raspberry Pi Pico 2 Wに搭載のLEDを操作する
+// LEDを点灯したり点滅させたりしてアプリの状態を表示したい。
+// ライブラリのサンプル等共通した動作にしたいため実装。
+// 引数：blink：点滅させたいときにtrue
+// 戻り値：なし
+void CugoCommon::LedPrint(bool err){
+	
+	while(1){
+		if(err){
+			digitalWrite(LED_BUILTIN, HIGH);
+			delay(150);
+			digitalWrite(LED_BUILTIN, LOW);
+			delay(150);
+		}
+		else{
+			digitalWrite(LED_BUILTIN, HIGH);
+			delay(300);
+		}
+	}
 }

@@ -23,6 +23,8 @@ class CugoDiffDriveCtrl{
 		bool Stop(void);																		// 停止命令
 		void SetKinematics(float leftTireDiameter, float rightTireDiameter, float leftGearRatio, float rightGearRatio, float tread);	// 順運動学、逆運運動学設定関数
 		void SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed);
+		void SetMaxSpeed(uint16_t xSpeed, uint16_t yawSpeed);		// 最大速度変更
+		bool GetMaxSpeed(uint16_t *pXSpeed, uint16_t *pYawSpeed);	// 最大速度取得
 		
 	private:
 		HardwareSerial *l_pSerial;
