@@ -528,8 +528,8 @@ void Crst01a::SetBumperBrake(uint8_t bumperConfig, uint8_t brakeConfig){
 
 // 電圧設定(0x48)
 // 車両コントローラが電圧異常と検知する電圧の上下限を設定する電文です。
-// 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
-// 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
+// 引数：driverMinVoltage：電圧が低いと判定する電圧 (値×0.1V)
+// 　　　driverMaxVoltage：電圧が高いと判定する電圧 (値×0.1V)
 // 戻り値：なし
 void Crst01a::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
 
@@ -1137,8 +1137,8 @@ bool Crst01a::GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2, uint32_t t
 
 // 電圧設定読み出し(0xC8)
 // 電圧異常検知の上下限設定を取得します。
-// 引数：minVol：下限電圧 (0.1V単位)
-// 　　　maxVol：上限電圧 (0.1V単位)
+// 引数：minVol：電圧が低いと判定する電圧 (0.1V単位)
+// 　　　maxVol：電圧が高いと判定する電圧 (0.1V単位)
 // 　　　timeout：タイムアウト時間 (ms)
 // 戻り値：成功時 true、タイムアウト時 false
 bool Crst01a::GetVoltageConfig(uint16_t *minVol, uint16_t *maxVol, uint32_t timeout){

@@ -192,7 +192,7 @@ cugoDiffDriveCtrl.SetMaxSpeed(1222,1500); // 走行速度を1.222m/s(4.4km/h)と
 ```
 >[!IMPORTANT]
 >スケッチ実行直後に設定がロボットに反映されます。スケッチ実行時にロボットの電源が切れている場合は反映されません。    
->スケッチ書き込み後はロボットの電源を切り、PCとUSBケーブルでの接続を切ります。  
+>スケッチ書き込み後はロボットの電源を切り、PCからUSBケーブルを抜きます。  
 >再度ロボットの電源を入れて確実にスケッチを実行してください。  
 >※USBケーブルでRaspberry Pi Pico 2 WとPCを接続している間はUSBケーブル経由で給電され、Raspberry Pi Pico 2 Wが動きます。その時にロボットの電源がOFFの場合はスケッチのみが動いてしまうため設定が反映されません。  
 
@@ -209,15 +209,15 @@ cugoDiffDriveCtrl.SetMaxSpeed(1222,1500); // 走行速度を1.222m/s(4.4km/h)と
 動作終了後はRaspberry Pi Pico 2 W上のLEDが点灯します。  
 
 参考）  
-V4.5として設定可能な範囲は18V～45V。  
+V4.5として設定可能な範囲は18.0V～45.0V。  
 V4.5のデフォルトは下限値が18.0V、上限値が32.0V。  
 
 cugoCommon.SetVoltageConfig()で電源電圧の上下限を設定します。  
-第一引数で下限電圧(0.1V単位)、第二引数で上限電圧(0.1V単位)を指定します。  
+第一引数で電圧が低いと判定する電圧(0.1V単位)、第二引数で電圧が高いと判定する電圧(0.1V単位)を指定します。  
 基板における電圧取得精度の特性上、設定値にはある程度の許容幅を持たせることを推奨します。  
 【例】
 ```cpp
-cugoCommon.SetVoltageConfig(180,320);	// 18V以下、32V以上で電圧異常と判断する設定
+cugoCommon.SetVoltageConfig(180,320);	// 18.0V以下または32.0V以上で電圧異常と判断する設定
 ```
 >[!IMPORTANT]
 >スケッチ実行直後に設定がロボットに反映されます。スケッチ実行時にロボットの電源が切れている場合は反映されません。    
@@ -231,7 +231,8 @@ cugoCommon.SetVoltageConfig(180,320);	// 18V以下、32V以上で電圧異常と
 >check_read(サンプルスケッチ)等のフラッシュメモリへ書き込みを行わないスケッチを書き込み、運用してください。
 
 >[!CAUTION]
->V4.5の場合は18V～45Vの範囲内で設定してください。
+>V4.5の場合は18.0V～45.0Vの範囲内で設定値を決めてください。
+>V4.5は45.0V以上の電圧を印加すると壊れる可能性がありますのでご注意ください。
 
 ### check_read
 
@@ -471,17 +472,17 @@ cugoCommon.SaveParamReq();				// フラッシュメモリに保存
 
 **bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage)**
 
-- `driverMinVoltage`：電圧異常の下限値（×0.1 V）
-- `driverMaxVoltage`：電圧異常の上限値（×0.1 V）
-- 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
+- `driverMinVoltage`：電圧が低いと判定する電圧（×0.1 V）
+- `driverMaxVoltage`：電圧が高いと判定する電圧（×0.1 V）
+- 車両コントローラが電圧正常と検知する電圧の上下限を設定する。
 - 設定値が範囲外の場合は `false` を返す。
-- CRST01Aとして設定可能な値は150～520(15V～52V)。
-- V4.5として設定可能な範囲は180～450(18V～45V)。
+- CRST01Aとして設定可能な値は150～520(15.0V～52.0V)。
+- V4.5として設定可能な範囲は180～450(18.0V.0～45.0V)。
 - V4.5のデフォルトは下限値が180(18.0V)、上限値が320(32.0V)。
 
 【例】
 ```cpp
-cugoCommon.SetVoltageConfig(180,320);	// 18V以下、32V以上で電圧異常と判断する設定
+cugoCommon.SetVoltageConfig(180,320);	// 18.0V以上、32.0V以下で電圧正常と判断する設定
 ```
 
 ---
@@ -490,8 +491,8 @@ cugoCommon.SetVoltageConfig(180,320);	// 18V以下、32V以上で電圧異常と
 
 **bool CugoCommon::GetVoltageConfig(uint16_t \*pDriverMinVoltage, uint16_t \*pDriverMaxVoltage)**
 
-- `pDriverMinVoltage`：電圧異常の下限値（×0.1 V）
-- `pDriverMaxVoltage`：電圧異常の上限値（×0.1 V）
+- `pDriverMinVoltage`：電圧が低いと判定する電圧（×0.1 V）
+- `pDriverMaxVoltage`：電圧が高いと判定する電圧（×0.1 V）
 - 車両コントローラが電圧異常と検知する電圧の設定を取得する。
 - 通信タイムアウト時は `false` を返す。
 

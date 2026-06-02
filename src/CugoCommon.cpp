@@ -205,8 +205,8 @@ bool CugoCommon::SaveParamReq(void){
 
 // 電圧上下限設定
 // 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
-// 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
-// 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
+// 引数：driverMinVoltage：電圧が低いと判定する電圧 (値×0.1V)
+// 　　　driverMaxVoltage：電圧が高いと判定する電圧 (値×0.1V)
 // 戻り値：設定値が正常時にtrue
 bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxVoltage){
 
@@ -223,10 +223,10 @@ bool CugoCommon::SetVoltageConfig(uint16_t driverMinVoltage, uint16_t driverMaxV
 }
 
 
-// 電圧上下限設定
-// 車両コントローラが電圧異常と検知する電圧の上下限を設定する。
-// 引数：driverMinVoltage：電圧異常の下限値 (値×0.1V)
-// 　　　driverMaxVoltage：電圧異常の上限値 (値×0.1V)
+// 電圧上下限取得
+// 車両コントローラが電圧異常と検知する電圧の上下限を取得する。
+// 引数：driverMinVoltage：電圧が低いと判定する電圧 (値×0.1V)
+// 　　　driverMaxVoltage：電圧が高いと判定する電圧 (値×0.1V)
 // 戻り値：設定値が正常時にtrue
 bool CugoCommon::GetVoltageConfig(uint16_t *pDriverMinVoltage, uint16_t *pDriverMaxVoltage){
 
