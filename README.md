@@ -133,7 +133,8 @@ C:\Users\<ユーザー名>\AppData\Local\Arduino15\packages\rp2040\tools\pqt-pyt
 
 2. USB ケーブルで PC と Raspberry Pi Pico 2W を接続する（PC に認識されない場合は **BOOTSEL** ボタンを押しながら挿入）
 
-   <ここにBOOTSELボタンの画像>
+   <img width="681" height="305" alt="image" src="https://github.com/user-attachments/assets/d7867f10-e068-4195-b1bc-30a6088faa92" />
+
 
 3. **ツール ＞ ボード ＞ Raspberry Pi Pico/RP2040/PR2350 ＞ Raspberry Pi Pico 2W** を選択
 
