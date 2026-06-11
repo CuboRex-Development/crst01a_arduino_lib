@@ -301,7 +301,21 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144064068,0.1144064068,0.5);	
 | cugoCommon.SetVoltageConfig() | 電圧異常の閾値設定 |
 | cugoCommon.GetVoltageConfig() | 電圧異常の閾値設定取得 |
 | cugoCommon.GetVersion() | バージョン取得 |
-| cugoDiffDriveCtrl.Init() | CuGoDiffDriveCtrl関連初期化 |
+| cugoCommon.EmergencyDeceleration() | 緊急減速 |
+| cugoCommon.ClearEncoderCount() | エンコーダリセット |
+| cugoCommon.SetBumperBrake() | バンパー・ブレーキ設定 |
+| cugoCommon.GetBumperBrake() | バンパー・ブレーキ設定取得 |
+| cugoCommon.SetBrakeThreshold() | ブレーキ停止閾値設定 |
+| cugoCommon.GetBrakeThreshold() | ブレーキ停止閾値取得 |
+| cugoCommon.SetSpeedRamp() | 減速ランプ設定 |
+| cugoCommon.GetSpeedRamp() | 減速ランプ設定取得 |
+| cugoCommon.SetRcConfig0() | RC設定(センター/最小/最大/不感帯) |
+| cugoCommon.GetRcConfig0() | RC設定(センター/最小/最大/不感帯)取得 |
+| cugoCommon.SetRcConfig1() | RC設定(スイッチ閾値) |
+| cugoCommon.GetRcConfig1() | RC設定(スイッチ閾値)取得 |
+| cugoCommon.SetRcConfig23() | RC設定(チャンネル割当) |
+| cugoCommon.GetRcConfig23() | RC設定(チャンネル割当)取得 |
+| cugoDiffDriveCtrl.Init() | CugoDiffDriveCtrl関連初期化 |
 | cugoDiffDriveCtrl.MoveForward() | 直進走行 |
 | cugoDiffDriveCtrl.MoveTurn() | その場旋回 |
 | cugoDiffDriveCtrl.MoveCurve() | 曲線走行 |
@@ -310,6 +324,17 @@ cugoDiffDriveCtrl.SetKinematics(0.07716,0.07716,0.1144064068,0.1144064068,0.5);	
 | cugoDiffDriveCtrl.SetKinematics() | 車体情報設定 |
 | cugoDiffDriveCtrl.SetMaxSpeed() | 最大速度設定 |
 | cugoDiffDriveCtrl.GetMaxSpeed() | 最大速度設定取得 |
+| cugoDiffDriveCtrl.GetEncoder() | エンコーダ読み出し |
+| cugoDiffDriveCtrl.GetMotorTemp() | モータ温度読み出し |
+| cugoDiffDriveCtrl.GetMotorError() | モータエラー読み出し |
+| cugoDiffDriveCtrl.GetMotorOut() | モータ出力読み出し |
+| cugoIo.Init() | CugoIo関連初期化 |
+| cugoIo.GetInput4bit() | 4bit入力読み出し |
+| cugoIo.GetBumper() | バンパー状態読み出し |
+| cugoIo.GetEmergencySwitch() | 非常停止スイッチ状態読み出し |
+| cugoIo.GetSbus() | SBUS状態読み出し |
+| cugoIo.SetLight() | ライト出力設定 |
+| cugoIo.GetLight() | ライト出力状態読み出し |
 
 ---
 
@@ -357,7 +382,7 @@ cugoCommon.SetControlMode(CUGO_CMD_MODE);    // CMDモードに設定
 **bool CugoCommon::GetControlMode(uint8_t \*mode)**
 
 - `mode`：現在のモード格納先。
-- 通信タイムアウト時は `false` を返す。
+- 未受信・通信タイムアウト時は `false` を返す。
 
 【例】
 ```cpp
@@ -423,7 +448,7 @@ cugoCommon.ClearErr(CUGO_ERR_CTL_VSYS_UV);   // システム電源異常をク�
 **bool CugoCommon::GetVoltage(uint16_t \*driverVoltage)**
 
 - `driverVoltage`：電源電圧（×0.1 V）
-- 通信タイムアウト時は `false` を返す。
+- 未受信・通信タイムアウト時は `false` を返す。
 > [!NOTE]
 > 取得できる電源電圧はあくまで目安です。
 
@@ -554,7 +579,185 @@ cugoCommon.GetVersion(&ver0, &ver1, &ver2);
 
 ---
 
-### CuGoDiffDriveCtrl
+#### 緊急減速
+
+**void CugoCommon::EmergencyDeceleration(void)**
+
+- 現在の走行を緊急減速で停止させる。減速の鋭さは `SetSpeedRamp()` の緊急減速時設定に従う。
+
+【例】
+```cpp
+cugoCommon.EmergencyDeceleration();
+```
+
+---
+
+#### エンコーダリセット
+
+**void CugoCommon::ClearEncoderCount(void)**
+
+- 車両コントローラが保持するモータエンコーダのカウント値を 0 にリセットする。
+
+【例】
+```cpp
+cugoCommon.ClearEncoderCount();
+```
+
+---
+
+#### バンパー・ブレーキ設定
+
+**void CugoCommon::SetBumperBrake(uint8_t bumperConfig, uint8_t brakeConfig)**
+
+- `bumperConfig`：バンパー設定。以下のビットの論理和で指定する。
+- `brakeConfig`：ブレーキ設定。
+
+| 定義(bumperConfig) | 値 | 意味 |
+|------|----|------|
+| `CUGO_BUMPER_STOP_DISABLE` | 0x00 | バンパー無効（接触で停止しない） |
+| `CUGO_BUMPER0_POLARITY` | 0x01 | バンパー0の論理反転 |
+| `CUGO_BUMPER1_POLARITY` | 0x02 | バンパー1の論理反転 |
+| `CUGO_BUMPER_STOP_ENABLE` | 0x80 | バンパー接触で停止 |
+
+| 定義(brakeConfig) | 値 | 意味 |
+|------|----|------|
+| `CUGO_AUTO_BRAKE_DISABLE` | 0x00 | 自動ブレーキ無効 |
+| `CUGO_AUTO_BRAKE_ENABLE` | 0x01 | 自動ブレーキ有効 |
+
+【例】
+```cpp
+// バンパー接触で停止、バンパー0の論理反転、自動ブレーキ有効
+cugoCommon.SetBumperBrake(CUGO_BUMPER_STOP_ENABLE | CUGO_BUMPER0_POLARITY, CUGO_AUTO_BRAKE_ENABLE);
+
+// バンパー無効、自動ブレーキ無効
+cugoCommon.SetBumperBrake(CUGO_BUMPER_STOP_DISABLE, CUGO_AUTO_BRAKE_DISABLE);
+```
+
+---
+
+#### バンパー・ブレーキ設定取得
+
+**bool CugoCommon::GetBumperBrake(uint8_t \*pBumperConfig, uint8_t \*pBrakeConfig)**
+
+- 設定中のバンパー・ブレーキ設定を取得する。通信タイムアウト時は `false` を返す。
+
+【例】
+```cpp
+uint8_t bumper, brake;
+cugoCommon.GetBumperBrake(&bumper, &brake);
+```
+
+---
+
+#### ブレーキ停止閾値設定
+
+**void CugoCommon::SetBrakeThreshold(float judgeToStopRpm)**
+
+- `judgeToStopRpm`：自動ブレーキ有効時に停止と判断する速度の閾値 (rpm)。
+
+【例】
+```cpp
+cugoCommon.SetBrakeThreshold(5.0);
+```
+
+---
+
+#### ブレーキ停止閾値取得
+
+**bool CugoCommon::GetBrakeThreshold(float \*pJudgeToStopRpm)**
+
+- 設定中の停止閾値を取得する。通信タイムアウト時は `false` を返す。
+
+---
+
+#### 減速ランプ設定
+
+**void CugoCommon::SetSpeedRamp(uint16_t speedRampA, uint16_t speedRampB, uint16_t speedRampC, uint16_t speedRampSelect)**
+
+- `speedRampA` / `speedRampB` / `speedRampC`：減速ランプ (RPM/s)。
+- `speedRampSelect`：各減速要因に A/B/C どのランプを使うかの選択。`CUGO_RAMP_SELECT_x` を `CUGO_RAMP_SHIFT_xxx` でシフトした値の論理和で指定する。
+
+| ランプ選択 | 値 |
+|------|----|
+| `CUGO_RAMP_SELECT_A` | 0 |
+| `CUGO_RAMP_SELECT_B` | 1 |
+| `CUGO_RAMP_SELECT_C` | 2 |
+
+| シフト量 | 対象の減速要因 |
+|------|------|
+| `CUGO_RAMP_SHIFT_SPEED` | 速度変更時 |
+| `CUGO_RAMP_SHIFT_EMR_DEC` | 緊急減速時 |
+| `CUGO_RAMP_SHIFT_VOLT_ERR` | 電圧異常時 |
+| `CUGO_RAMP_SHIFT_MD_ERR` | モータドライバエラー時 |
+| `CUGO_RAMP_SHIFT_BUMPER` | バンパー停止時 |
+| `CUGO_RAMP_SHIFT_EMR_SW` | 非常停止スイッチ押下時 |
+| `CUGO_RAMP_SHIFT_OTHER_ERR` | その他エラー時 |
+
+【例】
+```cpp
+// 速度変更は緩やか(A)、緊急減速は急(C)
+uint16_t sel = (CUGO_RAMP_SELECT_A << CUGO_RAMP_SHIFT_SPEED)
+             | (CUGO_RAMP_SELECT_C << CUGO_RAMP_SHIFT_EMR_DEC);
+cugoCommon.SetSpeedRamp(2000, 4000, 8000, sel);
+```
+
+---
+
+#### 減速ランプ設定取得
+
+**bool CugoCommon::GetSpeedRamp(uint16_t \*pSpeedRampA, uint16_t \*pSpeedRampB, uint16_t \*pSpeedRampC, uint16_t \*pSpeedRampSelect)**
+
+- 設定中の減速ランプ設定を取得する。通信タイムアウト時は `false` を返す。
+
+---
+
+#### RC設定（センター・最小・最大・不感帯）
+
+**void CugoCommon::SetRcConfig0(uint16_t rcCenterValue, uint16_t rcMinValue, uint16_t rcMaxValue, uint16_t rcCenterMargin)**
+
+- SBUS信号のセンター・最小・最大値・不感帯を設定する。
+
+**bool CugoCommon::GetRcConfig0(uint16_t \*pRcCenterValue, uint16_t \*pRcMinValue, uint16_t \*pRcMaxValue, uint16_t \*pRcCenterMargin)**
+
+- 設定値を取得する。通信タイムアウト時は `false` を返す。
+
+【例】
+```cpp
+cugoCommon.SetRcConfig0(1024, 200, 1800, 30);
+```
+
+---
+
+#### RC設定（スイッチ閾値）
+
+**void CugoCommon::SetRcConfig1(uint16_t rcLowSwitchingThreshold, uint16_t rcHighSwitchingThreshold)**
+
+- SBUS信号でスイッチ ON/OFF と判定する閾値を設定する。
+
+**bool CugoCommon::GetRcConfig1(uint16_t \*pRcLowSwitchingThreshold, uint16_t \*pRcHighSwitchingThreshold)**
+
+- 設定値を取得する。通信タイムアウト時は `false` を返す。
+
+---
+
+#### RC設定（チャンネル割当）
+
+**void CugoCommon::SetRcConfig23(uint8_t movementXChannel, uint8_t movementYChannel, uint8_t movementYawChannel, uint8_t controlModeSwitchChannel, uint8_t brakeControlChannel, uint8_t errorAndBumperResetChannel, uint8_t headlight0Channel, uint8_t headlight1Channel)**
+
+- 各操作に割り当てる SBUS チャンネル (0-15) を設定する。引数順は X移動 / Y移動 / 旋回 / モード切替 / 自動ブレーキ / エラー・バンパー解除 / ヘッドライト0 / ヘッドライト1。
+
+**bool CugoCommon::GetRcConfig23(uint8_t \*pMovementXChannel, uint8_t \*pMovementYChannel, uint8_t \*pMovementYawChannel, uint8_t \*pControlModeSwitchChannel, uint8_t \*pBrakeControlChannel, uint8_t \*pErrorAndBumperResetChannel, uint8_t \*pHeadlight0Channel, uint8_t \*pHeadlight1Channel)**
+
+- 設定値を取得する。通信タイムアウト時は `false` を返す。
+
+【例】
+```cpp
+cugoCommon.SetRcConfig23(1, 2, 3, 4, 5, 6, 7, 8);
+```
+
+---
+
+### CugoDiffDriveCtrl
 
 差動二輪ロボット（左右独立駆動）向けの走行制御クラスです。
 
@@ -562,7 +765,7 @@ cugoCommon.GetVersion(&ver0, &ver1, &ver2);
 > このクラスは速度制御と経過時間のみにより動作するため正確な自律制御ができません。 
 > 指示した値はあくまで目安となります。
 
-#### CuGoDiffDriveCtrl関連初期化
+#### CugoDiffDriveCtrl関連初期化
 
 
 **void CugoDiffDriveCtrl::Init(HardwareSerial \*pSerial = &Serial)**
@@ -722,12 +925,171 @@ cugoDiffDriveCtrl.GetMaxSpeed(&x, &yaw);
 
 ---
 
+#### エンコーダ読み出し
+
+**bool CugoDiffDriveCtrl::GetEncoder(uint32_t \*pRightEncoder, uint32_t \*pLeftEncoder)**
+
+- `pRightEncoder`：右モータ（モータ2）のエンコーダカウント値
+- `pLeftEncoder`：左モータ（モータ1）のエンコーダカウント値
+- データが古い／未受信の場合は `false` を返す。
+
+---
+
+#### モータ温度読み出し
+
+**bool CugoDiffDriveCtrl::GetMotorTemp(uint16_t \*pRightTemp, uint16_t \*pLeftTemp)**
+
+- `pRightTemp` / `pLeftTemp`：右（モータ2）／左（モータ1）モータドライバの温度（℃）
+- データが古い／未受信の場合は `false` を返す。
+
+---
+
+#### モータエラー読み出し
+
+**bool CugoDiffDriveCtrl::GetMotorError(uint16_t \*pRightError, uint16_t \*pLeftError)**
+
+- `pRightError` / `pLeftError`：右（モータ2）／左（モータ1）モータドライバのエラーコード
+- データが古い／未受信の場合は `false` を返す。
+
+---
+
+#### モータ出力読み出し
+
+**bool CugoDiffDriveCtrl::GetMotorOut(float \*pRightSpeed, float \*pRightTorque, float \*pLeftSpeed, float \*pLeftTorque)**
+
+- `pRightSpeed` / `pRightTorque`：右モータ（モータ2）の角速度（rpm）／トルク（A）
+- `pLeftSpeed` / `pLeftTorque`：左モータ（モータ1）の角速度（rpm）／トルク（A）
+- データが古い／未受信の場合は `false` を返す。
+
+> [!NOTE]
+> 左右の対応は **右モータ=モータ2、左モータ=モータ1** です。
+> これらの読み出しには対応する定期送信が有効である必要があり、`Init()` 実行時に車両コントローラが通電・接続済みである必要があります。後から通電した場合は Raspberry Pi Pico 2 W をリセットしてください。
+
+---
+
+### CugoIo
+
+入出力（IO）管理クラスです。4bit入力・バンパー・SBUS・非常停止スイッチの読み出しと、ヘッドライト・タワーライトの出力設定を行います。
+
+> [!NOTE]
+> 読み出し系は定期送信データを参照します。`Init()` で必要な定期送信を有効化しますが、`Init()` 実行時に車両コントローラが通電・接続済みである必要があります。受信前／通信タイムアウト時は `false` を返します。
+
+#### CugoIo関連初期化
+
+**void CugoIo::Init(HardwareSerial \*pSerial = &Serial)**
+
+- `pSerial`：ログ出力先シリアル。`NULL` でログ出力しない。デフォルトは Serial。
+- setup( ) の中で一度呼ぶこと。
+
+【例】
+```cpp
+void setup() {
+   cugoIo.Init();
+}
+```
+
+---
+
+#### 4bit入力読み出し
+
+**bool CugoIo::GetInput4bit(uint8_t \*in4bit1, uint8_t \*in4bit2)**
+
+- `in4bit1`：4bit入力1（下位4bit、値 0–15）
+- `in4bit2`：4bit入力2（上位4bit、値 0–15）
+- 外部IO（0x84）には 4bit 入力が 2 セット含まれるため引数を分けて返す。
+- データが古い／未受信の場合は `false` を返す。
+
+【例】
+```cpp
+uint8_t in1, in2;
+cugoIo.GetInput4bit(&in1, &in2);
+```
+
+---
+
+#### バンパー状態読み出し
+
+**bool CugoIo::GetBumper(uint8_t \*bumper0, uint8_t \*bumper1)**
+
+- `bumper0` / `bumper1`：バンパー0／1の接触状態（接触で 1、非接触で 0）
+- データが古い／未受信の場合は `false` を返す。
+
+---
+
+#### 非常停止スイッチ状態読み出し
+
+**bool CugoIo::GetEmergencySwitch(uint8_t \*emergencySwitch)**
+
+- `emergencySwitch`：非常停止スイッチの状態（押下で 1、非押下で 0）
+- データが古い／未受信の場合は `false` を返す。
+
+---
+
+#### SBUS状態読み出し
+
+**bool CugoIo::GetSbus(uint16_t \*sbusVal)**
+
+- `sbusVal`：16チャンネル分の信号値を格納する配列（要素数 16）
+- データが古い／未受信の場合は `false` を返す。
+
+【例】
+```cpp
+uint16_t sbus[16];
+cugoIo.GetSbus(sbus);
+```
+
+---
+
+#### ライト出力設定
+
+**void CugoIo::SetLight(uint8_t headlightControl, uint8_t towerlightControl)**
+
+- `headlightControl`：ヘッドライト設定。`CUGO_HEADLIGHT0` / `CUGO_HEADLIGHT1` の論理和で指定。
+- `towerlightControl`：タワーライト設定。各タワーライト 2bit で点灯モードを指定。`CUGO_TOWERLIGHT_x` を `CUGO_TOWERLIGHTn_SHIFT` でシフトした値の論理和で指定。
+
+| ヘッドライト定義 | 値 |
+|------|----|
+| `CUGO_HEADLIGHT0` | 0x01 |
+| `CUGO_HEADLIGHT1` | 0x02 |
+
+| タワーライト点灯モード | 値 |
+|------|----|
+| `CUGO_TOWERLIGHT_OFF` | 0（消灯） |
+| `CUGO_TOWERLIGHT_ON` | 1（点灯） |
+| `CUGO_TOWERLIGHT_SLOW_BLINK` | 2（遅い点滅） |
+| `CUGO_TOWERLIGHT_FAST_BLINK` | 3（早い点滅） |
+
+| シフト量 | 対象 |
+|------|------|
+| `CUGO_TOWERLIGHT0_SHIFT` | タワーライト0（0bit） |
+| `CUGO_TOWERLIGHT1_SHIFT` | タワーライト1（2bit） |
+| `CUGO_TOWERLIGHT2_SHIFT` | タワーライト2（4bit） |
+
+【例】
+```cpp
+// ヘッドライト両方ON、タワーライト0を点灯、タワーライト1を早い点滅
+uint8_t tower = (CUGO_TOWERLIGHT_ON << CUGO_TOWERLIGHT0_SHIFT)
+              | (CUGO_TOWERLIGHT_FAST_BLINK << CUGO_TOWERLIGHT1_SHIFT);
+cugoIo.SetLight(CUGO_HEADLIGHT0 | CUGO_HEADLIGHT1, tower);
+```
+
+---
+
+#### ライト出力状態読み出し
+
+**bool CugoIo::GetLight(uint8_t \*headlightControl, uint8_t \*towerlightControl)**
+
+- 現在のライト出力状態を取得する。ビット構成は `SetLight()` と同じ。
+- データが古い／未受信の場合は `false` を返す。
+
+---
+
 ### Crst01a（上級者向け低レベル API）
 
 > [!WARNING]
 > 通常の使用では触る必要はありません。
-> `CugoCommon` や `CuGoDiffDriveCtrl`から呼ぶためのクラスです。  
-> `CugoCommon` / `CuGoDiffDriveCtrl` で対応できない場合や、CRST01A との通信を細かく制御したい場合のみ参照してください。
+> `CugoCommon` や `CugoDiffDriveCtrl`から呼ぶためのクラスです。  
+> `CugoCommon` / `CugoDiffDriveCtrl` で対応できない場合や、CRST01A との通信を細かく制御したい場合のみ参照してください。
 
 #### 基本制御
 
@@ -744,16 +1106,18 @@ cugoDiffDriveCtrl.GetMaxSpeed(&x, &yaw);
 
 #### 定期受信データ取得
 
-| 関数 | 取得内容 |
-|------|---------|
-| `Crst01a::GetSysStatus(...)` | コントローラステータス・エラー・電圧 |
-| `Crst01a::GetReadRunStatus(x, y, yaw, time)` | 現在の走行速度 |
-| `Crst01a::GetExtIo(...)` | ヘッドライト・タワーライト・外部入力 |
-| `Crst01a::GetEncoder(enc[4], time)` | モータエンコーダ（4軸） |
-| `Crst01a::GetMdTemp(temp[4], time)` | モータドライバ温度（4軸） |
-| `Crst01a::GetMdStatus(err[4], time)` | モータドライバエラーコード（4軸） |
-| `Crst01a::GetMotorOut(speed[4], torque[4], time)` | モータ角速度・トルク（4軸） |
-| `Crst01a::GetSbus(val[16], time)` | SBUS 16 チャンネル値 |
+以下の関数は戻り値が `bool` で、対象の電文を一度でも受信していれば `true`、未受信なら `false` を返します。
+
+| 関数 | 取得内容 | 戻り値 |
+|------|---------|------|
+| `bool Crst01a::GetSysStatus(...)` | コントローラステータス・エラー・電圧 | 受信済みで true |
+| `bool Crst01a::GetReadRunStatus(x, y, yaw, time)` | 現在の走行速度 | 受信済みで true |
+| `bool Crst01a::GetExtIo(...)` | ヘッドライト・タワーライト・外部入力 | 受信済みで true |
+| `bool Crst01a::GetEncoder(enc[4], time)` | モータエンコーダ（4軸） | 全電文受信済みで true |
+| `bool Crst01a::GetMdTemp(temp[4], time)` | モータドライバ温度（4軸） | 受信済みで true |
+| `bool Crst01a::GetMdStatus(err[4], time)` | モータドライバエラーコード（4軸） | 受信済みで true |
+| `bool Crst01a::GetMotorOut(speed[4], torque[4], time)` | モータ角速度・トルク（4軸） | 全電文受信済みで true |
+| `bool Crst01a::GetSbus(val[16], time)` | SBUS 16 チャンネル値 | 全電文受信済みで true |
 
 
 #### パラメータ読み出し（要求→応答）
@@ -794,7 +1158,8 @@ crst01a_arduino_lib/
 ├── src/
 │   ├── Crst01a.h / .cpp              # 車両コントローラ通信
 │   ├── CugoCommon.h / .cpp           # 共通処理
-│   └── CugoDiffDriveCtrl.h / .cpp    # 差動二輪走行制御
+│   ├── CugoDiffDriveCtrl.h / .cpp    # 差動二輪走行制御
+│   └── CugoIo.h / .cpp               # 入出力(IO)管理
 ├── examples/
 │   ├── square_run/                   # 正方形走行サンプル
 │   ├── change_max_speed/             # 最高速度設定変更サンプル
@@ -812,14 +1177,16 @@ crst01a_arduino_lib/
 |--------|--------|------|
 | `Crst01a` | `Crst01a.h` | CRST01A との低レベル UART 通信 |
 | `CugoCommon` | `CugoCommon.h` | モード管理・エラー管理・共通処理 |
-| `CuGoDiffDriveCtrl` | `CugoDiffDriveCtrl.h` | 差動二輪ロボット向け走行制御 |
+| `CugoDiffDriveCtrl` | `CugoDiffDriveCtrl.h` | 差動二輪ロボット向け走行制御 |
+| `CugoIo` | `CugoIo.h` | 入出力(IO)管理 |
 
 各クラスのグローバルインスタンスがライブラリ内で定義されています。
 
 ```cpp
 extern Crst01a          crst01a;
 extern CugoCommon       cugoCommon;
-extern CuGoDiffDriveCtrl cugoDiffDriveCtrl;
+extern CugoDiffDriveCtrl cugoDiffDriveCtrl;
+extern CugoIo           cugoIo;
 ```
 
 ---

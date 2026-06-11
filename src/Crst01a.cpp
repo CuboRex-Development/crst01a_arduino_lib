@@ -46,29 +46,28 @@ Crst01a::Crst01a(void):iTimer0(0){
 	l_reqCycleMsg.data[7] = 0x00;
 	
 	
-	l_recvSysStatus.recvTime = 0;
-	l_recvRunStatus.recvTime = 0;
-	l_recvExtIo.recvTime = 0;
-	l_recvEncoder01.recvTime = 0;
-	l_recvEncoder23.recvTime = 0;
-	l_recvMdtemp.recvTime = 0;
-	l_recvMdStatus.recvTime = 0;
-	l_recvMotorOut0.recvTime = 0;
-	l_recvMotorOut1.recvTime = 0;
-	l_recvMotorOut2.recvTime = 0;
-	l_recvMotorOut3.recvTime = 0;
-	l_recvSbus0.recvTime = 0;
-	l_recvSbus1.recvTime = 0;
-	l_recvSbus2.recvTime = 0;
-	l_recvSbus3.recvTime = 0;
-	
-	l_recvBumperBrake.recvTime = 0;
-	
-	for(int j = 0; j < 6; j++){
-		l_recvFwdKinematics[j].recvTime = 0;
-		l_recvInvKinematics[j].recvTime = 0;
-	}
-	
+	// 受信バッファを全て0クリア(recvFlag=false, recvTime=0, msg=0)
+	memset(&l_recvSysStatus, 0, sizeof(l_recvSysStatus));
+	memset(&l_recvRunStatus, 0, sizeof(l_recvRunStatus));
+	memset(&l_recvExtIo, 0, sizeof(l_recvExtIo));
+	memset(&l_recvEncoder01, 0, sizeof(l_recvEncoder01));
+	memset(&l_recvEncoder23, 0, sizeof(l_recvEncoder23));
+	memset(&l_recvMdtemp, 0, sizeof(l_recvMdtemp));
+	memset(&l_recvMdStatus, 0, sizeof(l_recvMdStatus));
+	memset(&l_recvMotorOut0, 0, sizeof(l_recvMotorOut0));
+	memset(&l_recvMotorOut1, 0, sizeof(l_recvMotorOut1));
+	memset(&l_recvMotorOut2, 0, sizeof(l_recvMotorOut2));
+	memset(&l_recvMotorOut3, 0, sizeof(l_recvMotorOut3));
+	memset(&l_recvSbus0, 0, sizeof(l_recvSbus0));
+	memset(&l_recvSbus1, 0, sizeof(l_recvSbus1));
+	memset(&l_recvSbus2, 0, sizeof(l_recvSbus2));
+	memset(&l_recvSbus3, 0, sizeof(l_recvSbus3));
+
+	memset(&l_recvBumperBrake, 0, sizeof(l_recvBumperBrake));
+
+	memset(l_recvFwdKinematics, 0, sizeof(l_recvFwdKinematics));
+	memset(l_recvInvKinematics, 0, sizeof(l_recvInvKinematics));
+
 }
 
 // 初期化関数
@@ -77,21 +76,24 @@ Crst01a::Crst01a(void):iTimer0(0){
 bool Crst01a::Init(void){
 	
 	if(false == l_initFlg){
-	
+
 		SERIAL_CRST01A.setFIFOSize(256);  // 256バイトに変更
 		SERIAL_CRST01A.begin(BAUD_RATE, SERIAL_8N1);		// 車両コントローラとの通信
-	
+
 		// 定期割り込み設定
 		if(!(iTimer0.attachInterruptInterval(TIMER_CYCLE, TimerHandler0))){
 			return false;
 		}
-		
+
+		// 初回のみ初期化する。
+		// 複数クラスのInit()が連続で呼ばれても、先に積んだ送信バッファ(定期送信設定等)を
+		// クリアしないよう、初回のみリセットする。
+		l_dataId = 0;
+		l_sendBufCount = 0;
+
 		l_initFlg = true;
 	}
-	
-	l_dataId = 0;
-	l_sendBufCount = 0;
-	
+
 	return true;
 }
 
@@ -352,7 +354,7 @@ bool Crst01a::SaveParamReq(uint32_t timeout){
 			return ret;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -794,14 +796,16 @@ void Crst01a::SetInvKinematics(float *data){
 // 　　　motorDriverError：モータドライバエラー状態の格納先
 // 　　　DriverVoltage：現在の電源電圧 (0.1V単位)
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, uint8_t *motorDriverError, uint16_t *DriverVoltage, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, uint8_t *motorDriverError, uint16_t *DriverVoltage, uint32_t *recvTime){
 
 	*controllerStatus = l_recvSysStatus.msg.data[0];
 	*controllerError = l_recvSysStatus.msg.data[1];
 	*motorDriverError = l_recvSysStatus.msg.data[2];
 	*DriverVoltage = *(uint16_t*)(&l_recvSysStatus.msg.data[6]);
 	*recvTime = l_recvSysStatus.recvTime;
+
+	return l_recvSysStatus.recvFlag;
 }
 
 // 走行状態読み出し(0x81)
@@ -810,13 +814,15 @@ void Crst01a::GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, 
 // 　　　ySpeed：Y方向速度格納先
 // 　　　yawSpeed：旋回速度格納先
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpeed, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpeed, uint32_t *recvTime){
 
 	*xSpeed = *(int16_t*)(&l_recvRunStatus.msg.data[0]);
 	*ySpeed = *(int16_t*)(&l_recvRunStatus.msg.data[2]);
 	*yawSpeed = *(int16_t*)(&l_recvRunStatus.msg.data[4]);
 	*recvTime = l_recvRunStatus.recvTime;
+
+	return l_recvRunStatus.recvFlag;
 }
 
 // 外部IO読み出し(0x84)
@@ -825,21 +831,23 @@ void Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpe
 // 　　　towerlightControl：タワーライト状態格納先
 // 　　　in4Bit：4bit入力状態格納先
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime){
 
 	*headlightControl = l_recvExtIo.msg.data[0];
 	*towerlightControl = l_recvExtIo.msg.data[1];
 	*in4Bit = l_recvExtIo.msg.data[2];
 	*recvTime = l_recvExtIo.recvTime;
+
+	return l_recvExtIo.recvFlag;
 }
 
 // モータエンコーダ読み出し(0x88, 0x89)
 // モータ0～3のエンコーダカウント値を取得します。
 // 引数：motorEncoder：4つのエンコーダ値を格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime){
+// 戻り値：全電文(0x88,0x89)を受信していればtrue、未受信があればfalse
+bool Crst01a::GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime){
 
 	uint32_t now = millis();
 
@@ -847,49 +855,55 @@ void Crst01a::GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime){
 	motorEncoder[1] = *(uint32_t*)(&l_recvEncoder01.msg.data[4]);
 	motorEncoder[2] = *(uint32_t*)(&l_recvEncoder23.msg.data[0]);
 	motorEncoder[3] = *(uint32_t*)(&l_recvEncoder23.msg.data[4]);
-	
+
 	// 一番遅いタイムスタンプを返す
 	*recvTime = l_recvEncoder01.recvTime;
 	if((now - *recvTime) < (now - l_recvEncoder23.recvTime)){
 		*recvTime = l_recvEncoder23.recvTime;
 	}
+
+	return (l_recvEncoder01.recvFlag && l_recvEncoder23.recvFlag);
 }
 
 // モータドライバ温度読み出し (0x8C)
 // モータドライバ0～3の温度を取得します。
 // 引数：motorTemp：4つの温度値を格納する配列 (℃)
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetMdTemp(uint16_t *motorTemp, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetMdTemp(uint16_t *motorTemp, uint32_t *recvTime){
 
 	motorTemp[0] = *(uint16_t*)(&l_recvMdtemp.msg.data[0]);
 	motorTemp[1] = *(uint16_t*)(&l_recvMdtemp.msg.data[2]);
 	motorTemp[2] = *(uint16_t*)(&l_recvMdtemp.msg.data[4]);
 	motorTemp[3] = *(uint16_t*)(&l_recvMdtemp.msg.data[6]);
 	*recvTime = l_recvMdtemp.recvTime;
+
+	return l_recvMdtemp.recvFlag;
 }
 
 // モータドライバ状態読み出し (0x8E)
 // モータドライバから受信したエラーコードを取得します。
 // 引数：motorErr：4つのエラーコードを格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetMdStatus(uint16_t *motorErr, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetMdStatus(uint16_t *motorErr, uint32_t *recvTime){
 
 	motorErr[0] = *(uint16_t*)(&l_recvMdStatus.msg.data[0]);
 	motorErr[1] = *(uint16_t*)(&l_recvMdStatus.msg.data[2]);
 	motorErr[2] = *(uint16_t*)(&l_recvMdStatus.msg.data[4]);
 	motorErr[3] = *(uint16_t*)(&l_recvMdStatus.msg.data[6]);
 	*recvTime = l_recvMdStatus.recvTime;
+
+	return l_recvMdStatus.recvFlag;
 }
 
 // モータ出力読み出し (0x90-0x93)
 // モータ0～3の角速度とトルクを取得します。
 // 引数：motorSpeed：4つの角速度(rpm)を格納する配列
-// 　　　motorTorque：4つのトルク(A)を格納する配列
+// 　　　motorTorque：4つのトルク(0.01N・m)を格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvTime){
+// 戻り値：全電文(0x90-0x93)を受信していればtrue、未受信があればfalse
+bool Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvTime){
 
 	uint32_t now = millis();
 
@@ -901,7 +915,7 @@ void Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvT
 	motorTorque[2] = *(float*)(&l_recvMotorOut2.msg.data[4]);
 	motorSpeed[3] = *(float*)(&l_recvMotorOut3.msg.data[0]);
 	motorTorque[3] = *(float*)(&l_recvMotorOut3.msg.data[4]);
-	
+
 	// 一番遅いタイムスタンプを返す
 	*recvTime = l_recvMotorOut0.recvTime;
 	if((now - *recvTime) < (now - l_recvMotorOut1.recvTime)){
@@ -913,14 +927,16 @@ void Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvT
 	if((now - *recvTime) < (now - l_recvMotorOut3.recvTime)){
 		*recvTime = l_recvMotorOut3.recvTime;
 	}
+
+	return (l_recvMotorOut0.recvFlag && l_recvMotorOut1.recvFlag && l_recvMotorOut2.recvFlag && l_recvMotorOut3.recvFlag);
 }
 
 // SBUS読み出し (0xB0-0xB3)
 // SBUS 16チャンネル分の信号値を取得します。
 // 引数：sbusVal：16チャンネルの信号値を格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetSbus(uint16_t *sbusVal, uint32_t *recvTime){
+// 戻り値：全電文(0xB0-0xB3)を受信していればtrue、未受信があればfalse
+bool Crst01a::GetSbus(uint16_t *sbusVal, uint32_t *recvTime){
 
 	uint32_t now = millis();
 
@@ -952,6 +968,8 @@ void Crst01a::GetSbus(uint16_t *sbusVal, uint32_t *recvTime){
 	if((now - *recvTime) < (now - l_recvSbus3.recvTime)){
 		*recvTime = l_recvSbus3.recvTime;
 	}
+
+	return (l_recvSbus0.recvFlag && l_recvSbus1.recvFlag && l_recvSbus2.recvFlag && l_recvSbus3.recvFlag);
 }
 
 // データ定期送信読み出し(0xC0)
@@ -998,7 +1016,7 @@ bool Crst01a::GetDataPeriodic(uint8_t *frequency, uint8_t *data,uint32_t timeout
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1032,7 +1050,7 @@ bool Crst01a::GetMaxSpeed(uint16_t *xSpeed, uint16_t *ySpeed, uint16_t *yawSpeed
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1064,7 +1082,7 @@ bool Crst01a::GetBumperBrake(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1128,7 +1146,7 @@ bool Crst01a::GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2, uint32_t t
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1161,7 +1179,7 @@ bool Crst01a::GetVoltageConfig(uint16_t *minVol, uint16_t *maxVol, uint32_t time
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1192,7 +1210,7 @@ bool Crst01a::GetMdConfig0(uint16_t *existFlag, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1223,7 +1241,7 @@ bool Crst01a::GetMdConfig1(float *maxGbSpeed, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1254,7 +1272,7 @@ bool Crst01a::GetMdConfig2(float *stopRpm, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1287,7 +1305,7 @@ bool Crst01a::GetMdConfig3(float *maxTorque, float *startTorque, uint32_t timeou
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1320,7 +1338,7 @@ bool Crst01a::GetMdConfig4(float *recoveryTorque, float *torqueAddRatio, uint32_
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1357,7 +1375,7 @@ bool Crst01a::GetMdConfig5(uint16_t *rampA, uint16_t *rampB, uint16_t *rampC, ui
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1394,7 +1412,7 @@ bool Crst01a::GetRcConfig0(uint16_t *center, uint16_t *min, uint16_t *max, uint1
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1427,7 +1445,7 @@ bool Crst01a::GetRcConfig1(uint16_t *lowTh, uint16_t *highTh, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1470,7 +1488,7 @@ bool Crst01a::GetRcConfig23(uint8_t* movementXChannel, uint8_t* movementYChannel
 			break;;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1490,7 +1508,7 @@ bool Crst01a::GetRcConfig23(uint8_t* movementXChannel, uint8_t* movementYChannel
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1537,7 +1555,7 @@ bool Crst01a::GetFwdKinematics(float *data, uint32_t timeout){
 				restore_interrupts(irq_state);
 				break;
 			}
-			if(millis() > (now + timeout)){
+			if((millis() - now) >= timeout){
 				return false;		// タイムアウト
 			}
 		}
@@ -1586,7 +1604,7 @@ bool Crst01a::GetInvKinematics(float *data, uint32_t timeout){
 				restore_interrupts(irq_state);
 				break;
 			}
-			if(millis() > (now + timeout)){
+			if((millis() - now) >= timeout){
 				return false;		// タイムアウト
 			}
 		}

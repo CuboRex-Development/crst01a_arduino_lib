@@ -25,7 +25,11 @@ class CugoDiffDriveCtrl{
 		void SetMoveSpeed(int16_t xSpeed, int16_t yawSpeed);
 		void SetMaxSpeed(uint16_t xSpeed, uint16_t yawSpeed);		// 最大速度変更
 		bool GetMaxSpeed(uint16_t *pXSpeed, uint16_t *pYawSpeed);	// 最大速度取得
-		
+		bool GetEncoder(uint32_t *pRightEncoder, uint32_t *pLeftEncoder);							// エンコーダ読み出し(0x88,0x89)
+		bool GetMotorTemp(uint16_t *pRightTemp, uint16_t *pLeftTemp);								// モータドライバ温度読み出し(0x8C)
+		bool GetMotorError(uint16_t *pRightError, uint16_t *pLeftError);								// モータドライバ状態読み出し(0x8E)
+		bool GetMotorOut(float *pRightSpeed, float *pRightTorque, float *pLeftSpeed, float *pLeftTorque);	// モータ出力読み出し(0x90-0x93)
+
 	private:
 		HardwareSerial *l_pSerial;
 		int16_t l_xSpeed;

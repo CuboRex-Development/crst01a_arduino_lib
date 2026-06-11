@@ -126,14 +126,14 @@ class Crst01a{
 		void SetRcConfig23(uint8_t movementXChannel, uint8_t movementYChannel, uint8_t movementYawChannel, uint8_t controlModeSwitchChannel, uint8_t brakeControlChannel, uint8_t errorAndBumperResetChannel,uint8_t headlight0Channel, uint8_t headlight1Channel);// 
 		void SetFwdKinematics(float *data);												// 順運動学行列設定(0x60-0x65)
 		void SetInvKinematics(float *data);												// 逆運動学行列設定(0x70-0x75)
-		void GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, uint8_t *l_motorDriverError, uint16_t *l_DriverVoltage, uint32_t *recvTime);	// システムステータス読み出し(0x80)
-		void GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpeed, uint32_t *recvTime);					// 走行状態読み出し(0x81)
-		void GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime);			// 外部IO読み出し(0x84)
-		void GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime);					// モータエンコーダ読み出し(0x88, 0x89)
-		void GetMdTemp(uint16_t *motorTemp, uint32_t *recvTime);						// モータドライバ温度読み出し (0x8C)
-		void GetMdStatus(uint16_t *motorErr, uint32_t *recvTime);						// モータドライバ状態読み出し (0x8E)
-		void GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvTime);	// モータ出力読み出し (0x90-0x93)
-		void GetSbus(uint16_t *sbusVal, uint32_t *recvTime);							// SBUS読み出し (0xB0-0xB3)
+		bool GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, uint8_t *l_motorDriverError, uint16_t *l_DriverVoltage, uint32_t *recvTime);	// システムステータス読み出し(0x80) 戻り値:受信済みでtrue
+		bool GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpeed, uint32_t *recvTime);					// 走行状態読み出し(0x81) 戻り値:受信済みでtrue
+		bool GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime);			// 外部IO読み出し(0x84) 戻り値:受信済みでtrue
+		bool GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime);					// モータエンコーダ読み出し(0x88, 0x89) 戻り値:全電文受信済みでtrue
+		bool GetMdTemp(uint16_t *motorTemp, uint32_t *recvTime);						// モータドライバ温度読み出し (0x8C) 戻り値:受信済みでtrue
+		bool GetMdStatus(uint16_t *motorErr, uint32_t *recvTime);						// モータドライバ状態読み出し (0x8E) 戻り値:受信済みでtrue
+		bool GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvTime);	// モータ出力読み出し (0x90-0x93) 戻り値:全電文受信済みでtrue
+		bool GetSbus(uint16_t *sbusVal, uint32_t *recvTime);							// SBUS読み出し (0xB0-0xB3) 戻り値:全電文受信済みでtrue
 		bool GetDataPeriodic(uint8_t *frequency, uint8_t *data, uint32_t timeout = 200);									// データ定期送信読み出し(0xC0)
 		bool GetMaxSpeed(uint16_t *xSpeed, uint16_t *ySpeed, uint16_t *yawSpeed, uint32_t timeout = 200);					// 最大速度設定読み出し(0xC1)
 		bool GetBumperBrake(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32_t timeout = 200);							// バンパー、ブレーキ設定読み出し(0xC4)
@@ -168,6 +168,7 @@ class Crst01a{
 
 		// 車両コントローラ電文+タイムスタンプ
 		typedef struct{
+			bool recvFlag;			// 一度でも受信したらtrue(初期化時はfalse)
 			uint32_t recvTime;
 			telegram_t msg;
 		}telegram_time_t;
