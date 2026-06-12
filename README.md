@@ -1104,6 +1104,20 @@ cugoIo.SetLight(CUGO_HEADLIGHT0 | CUGO_HEADLIGHT1, tower);
 | `Crst01a::SetLights(headlight, towerlight)` | ライト制御 |
 | `Crst01a::SaveParamReq(timeout)` | パラメータをフラッシュに保存 |
 
+#### 定期送信設定・自動送信制御
+
+「定期受信データ取得」を得るには、対象の定期送信を有効化する必要があります。あわせて、車両コントローラのタイムアウト防止用送信（ヘルスチェック）と、定期送信設定の自動再送を制御できます。
+
+| 関数 | 概要 |
+|------|------|
+| `Crst01a::SetCycleReqFrequency(frequency)` | 定期送信の周期設定（0:10Hz / 1:20Hz / 2:50Hz） |
+| `Crst01a::SetCycleReq(funcCode)` | 指定 funcCode の定期送信を有効化（要求電文 0x40 を送信） |
+| `Crst01a::ClearCycleReq(funcCode)` | 指定 funcCode の定期送信を無効化（要求電文 0x40 を送信） |
+| `Crst01a::SetHealthCheckSend(enable)` | タイムアウト防止用送信の有効/無効。送信データが無い周期にタイムアウト防止用電文を送る（既定:有効） |
+| `Crst01a::SetCycleResend(enable)` | 定期送信設定(0x40)を 1000ms 周期で自動再送する有効/無効（既定:有効） |
+
+`SetHealthCheckSend` と `SetCycleResend` は独立して設定でき、両方有効なら 1000ms ごとに再送し、再送が無い周期にタイムアウト防止用を送信します。
+
 #### 定期受信データ取得
 
 以下の関数は戻り値が `bool` で、対象の電文を一度でも受信していれば `true`、未受信なら `false` を返します。

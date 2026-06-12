@@ -22,6 +22,8 @@
 #define RESULT_OK	(0x01)		// パラメータ保存成功
 #define RESULT_NG	(0x02)		// パラメータ保存失敗
 
+#define CYCLE_RESEND_INTERVAL	(1000)	// 定期送信要求の定期再送の間隔(ms)
+
 
 Crst01a crst01a;
 
@@ -33,7 +35,12 @@ Crst01a::Crst01a(void):iTimer0(0){
 	
 	l_initFlg = false;
 	l_waitFunkCode = CRST_FUNC_NONE;
-	
+
+	// 自動送信機能の初期化
+	l_healthCheckSend = true;					// ヘルスチェック デフォルト有効
+	l_cycleResend = true;						// 定期再送 デフォルト有効
+	l_lastCycleResendTime = 0;
+
 	l_reqCycleMsg.startByte = CRST_START_BYTE;
 	l_reqCycleMsg.funcCode = CRST_FUNC_SET_DATA_PERIODIC;
 	l_reqCycleMsg.data[0] = 0x00;
@@ -1620,7 +1627,7 @@ bool Crst01a::GetInvKinematics(float *data, uint32_t timeout){
 // 引数：t：タイマー構造体ポインタ
 // 戻り値：true (継続)
 bool Crst01a::TimerHandler0(struct repeating_timer *t){
-	crst01a.SetCmd();		// 車両コントローラへの電文送信
+	crst01a.SetCmd();		// 車両コントローラへの電文送信(定期再送・ヘルスチェックを含む)
 	crst01a.GetCmd();		// 車両コントローラから電文の読み出し
 	return true;
 }
@@ -1633,19 +1640,31 @@ bool Crst01a::TimerHandler0(struct repeating_timer *t){
 // 戻り値：なし
 void Crst01a::SetCmd(void){
 	uint8_t	i;
-	
-	// 送信データがないならタイムアウト防止用にエラー解除(0x00なのでなにも解除しない)
-	if(0 == l_sendBufCount){
+	uint32_t now = millis();
+
+	// 再送(有効時)：1000msごとに定期送信要求(l_reqCycleMsg)を無条件で送信バッファへ積む
+	if(true == l_cycleResend){
+		if((now - l_lastCycleResendTime) >= CYCLE_RESEND_INTERVAL){
+			l_lastCycleResendTime = now;
+			l_reqCycleMsg.dataId = CalcAddDataId();
+			l_reqCycleMsg.checkSum = CalcCheckSum(&l_reqCycleMsg);	// チェックサムをセット
+			SendData(&l_reqCycleMsg);
+		}
+	}
+
+	// ヘルスチェック(有効時)：このtickで他に送るものが無い(アイドル)時のみ送信
+	// エラー解除(0x00なのでなにも解除しない)を送り、車両コントローラのタイムアウトを防ぐ
+	if((true == l_healthCheckSend) && (0 == l_sendBufCount)){
 		ClearDriverError(0x00);
 	}
-	
+
 	// 送信バッファ内のデータを送信
 	for(i = 0;i < l_sendBufCount;i++){
 		if(CRST_PACKET_LEN != SERIAL_CRST01A.write((uint8_t*)&l_sendBuf[i], CRST_PACKET_LEN)){
 			break;
 		}
 	}
-	
+
 	l_sendBufCount = 0;
 }
 
@@ -1793,6 +1812,23 @@ void Crst01a::GetCmd(void){
 			break;	// 1電文受信していないので処理をしない
 		}
 	}
+}
+
+// ヘルスチェック(アイドル時の定期送信)の有効/無効切替
+// SetCmd()で送信バッファが空(アイドル)の時に、車両コントローラのタイムアウト防止用の
+// エラー解除(0x00)を送信するかを切り替えます。
+// 引数：enable：true：送信する(デフォルト), false：送信しない
+// 戻り値：なし
+void Crst01a::SetHealthCheckSend(bool enable){
+	l_healthCheckSend = enable;
+}
+
+// 定期送信要求の定期再送の有効/無効切替
+// 有効時はSetCmd()で1000msごとに定期送信要求(l_reqCycleMsg)を無条件で再送します。
+// 引数：enable：true：再送する(デフォルト), false：再送しない
+// 戻り値：なし
+void Crst01a::SetCycleResend(bool enable){
+	l_cycleResend = enable;
 }
 
 // 受信待ちフラグの取得関数

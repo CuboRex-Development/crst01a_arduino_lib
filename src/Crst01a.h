@@ -155,6 +155,9 @@ class Crst01a{
 		bool GetFwdKinematics(float *data, uint32_t timeout = 200);						// 順運動学数列読み出し(0xE0-0xE5)
 		bool GetInvKinematics(float *data, uint32_t timeout = 200);						// 逆運動学数列読み出し(0xF0-0xF5)
 
+		void SetHealthCheckSend(bool enable);			// ヘルスチェック(アイドル時の定期送信)の有効/無効切替(デフォルト有効)
+		void SetCycleResend(bool enable);				// 定期送信要求の1000ms定期再送の有効/無効切替(デフォルト有効)
+
 	private:
 		
 		// 車両コントローラ電文フォーマット
@@ -181,6 +184,10 @@ class Crst01a{
 		bool l_initFlg;
 		uint16_t l_waitFunkCode;		// 受信待ちをしている電文ID。待ちが無い時は0xFFFF
 		telegram_t l_reqCycleMsg;	// 定周期送信要求バッファ
+
+		bool l_healthCheckSend;			// ヘルスチェック(アイドル時の定期送信)の有効/無効
+		bool l_cycleResend;				// 定期送信要求の定期再送の有効/無効
+		uint32_t l_lastCycleResendTime;	// 定期送信要求を最後に再送した時刻(ms)
 
 		// 定期送信内容を保持する変数
 		telegram_time_t l_recvSysStatus;
