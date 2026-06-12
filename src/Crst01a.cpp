@@ -77,6 +77,9 @@ bool Crst01a::Init(void){
 	
 	if(false == l_initFlg){
 
+		// note：CRST01Aが起動してから最初の500msは受信処理をしないため待つ必要がある。
+		delay(500);
+		
 		SERIAL_CRST01A.setFIFOSize(256);  // 256バイトに変更
 		SERIAL_CRST01A.begin(BAUD_RATE, SERIAL_8N1);		// 車両コントローラとの通信
 
@@ -1678,66 +1681,82 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_SYS_STATUS:		// システムステータス読み出し
 						l_recvSysStatus.msg = buf;
 						l_recvSysStatus.recvTime = millis();
+						l_recvSysStatus.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_RUN_STATUS:		// 走行状態読み出し
 						l_recvRunStatus.msg = buf;
 						l_recvRunStatus.recvTime = millis();
+						l_recvRunStatus.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_EXT_IO:			// 外部IO読み出し
 						l_recvExtIo.msg = buf;
 						l_recvExtIo.recvTime = millis();
+						l_recvExtIo.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_ENCODER_01:		// モータエンコーダ読み出し (0, 1)
 						l_recvEncoder01.msg = buf;
 						l_recvEncoder01.recvTime = millis();
+						l_recvEncoder01.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_ENCODER_23:		// モータエンコーダ読み出し (2, 3)
 						l_recvEncoder23.msg = buf;
 						l_recvEncoder23.recvTime = millis();
+						l_recvEncoder23.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MD_TEMP:		// モータドライバ温度読み出し
 						l_recvMdtemp.msg = buf;
 						l_recvMdtemp.recvTime = millis();
+						l_recvMdtemp.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MD_STATUS:		// モータドライバ状態読み出し
 						l_recvMdStatus.msg = buf;
 						l_recvMdStatus.recvTime = millis();
+						l_recvMdStatus.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_0:	// モータ出力読み出し (0)
 						l_recvMotorOut0.msg = buf;
 						l_recvMotorOut0.recvTime = millis();
+						l_recvMotorOut0.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_1:	// モータ出力読み出し (1)
 						l_recvMotorOut1.msg = buf;
 						l_recvMotorOut1.recvTime = millis();
+						l_recvMotorOut1.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_2:	// モータ出力読み出し (2)
 						l_recvMotorOut2.msg = buf;
 						l_recvMotorOut2.recvTime = millis();
+						l_recvMotorOut2.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_3:	// モータ出力読み出し (3)
 						l_recvMotorOut3.msg = buf;
 						l_recvMotorOut3.recvTime = millis();
+						l_recvMotorOut3.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_0:			// SBUS読み出し (Ch 1-4)
 						l_recvSbus0.msg = buf;
 						l_recvSbus0.recvTime = millis();
+						l_recvSbus0.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_1:			// SBUS読み出し (Ch 5-8)
 						l_recvSbus1.msg = buf;
 						l_recvSbus1.recvTime = millis();
+						l_recvSbus1.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_2:			// SBUS読み出し (Ch 9-12)
 						l_recvSbus2.msg = buf;
 						l_recvSbus2.recvTime = millis();
+						l_recvSbus2.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_3:			// SBUS読み出し (Ch 13-16)
 						l_recvSbus3.msg = buf;
 						l_recvSbus3.recvTime = millis();
+						l_recvSbus3.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_BUMPER_BRAKE:	// バンパー、ブレーキ設定読み出し (0x44)
 						l_recvBumperBrake.msg = buf;
 						l_recvBumperBrake.recvTime = millis();
+						l_recvBumperBrake.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_FWD_KINEMATICS_0:
 					case CRST_FUNC_READ_FWD_KINEMATICS_1:
@@ -1747,6 +1766,7 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_FWD_KINEMATICS_5:
 						l_recvFwdKinematics[buf.funcCode - CRST_FUNC_READ_FWD_KINEMATICS_0].msg = buf;
 						l_recvFwdKinematics[buf.funcCode - CRST_FUNC_READ_FWD_KINEMATICS_0].recvTime = millis();
+						l_recvFwdKinematics[buf.funcCode - CRST_FUNC_READ_FWD_KINEMATICS_0].recvFlag = true;
 						break;
 					case CRST_FUNC_READ_INV_KINEMATICS_0:
 					case CRST_FUNC_READ_INV_KINEMATICS_1:
@@ -1756,6 +1776,7 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_INV_KINEMATICS_5:
 						l_recvInvKinematics[buf.funcCode - CRST_FUNC_READ_INV_KINEMATICS_0].msg = buf;
 						l_recvInvKinematics[buf.funcCode - CRST_FUNC_READ_INV_KINEMATICS_0].recvTime = millis();
+						l_recvInvKinematics[buf.funcCode - CRST_FUNC_READ_INV_KINEMATICS_0].recvFlag = true;
 						break;
 					default:
 						break;
