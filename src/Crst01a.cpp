@@ -22,6 +22,8 @@
 #define RESULT_OK	(0x01)		// パラメータ保存成功
 #define RESULT_NG	(0x02)		// パラメータ保存失敗
 
+#define CYCLE_RESEND_INTERVAL	(1000)	// 定期送信要求の定期再送の間隔(ms)
+
 
 Crst01a crst01a;
 
@@ -33,7 +35,12 @@ Crst01a::Crst01a(void):iTimer0(0){
 	
 	l_initFlg = false;
 	l_waitFunkCode = CRST_FUNC_NONE;
-	
+
+	// 自動送信機能の初期化
+	l_healthCheckSend = true;					// ヘルスチェック デフォルト有効
+	l_cycleResend = true;						// 定期再送 デフォルト有効
+	l_lastCycleResendTime = 0;
+
 	l_reqCycleMsg.startByte = CRST_START_BYTE;
 	l_reqCycleMsg.funcCode = CRST_FUNC_SET_DATA_PERIODIC;
 	l_reqCycleMsg.data[0] = 0x00;
@@ -46,29 +53,28 @@ Crst01a::Crst01a(void):iTimer0(0){
 	l_reqCycleMsg.data[7] = 0x00;
 	
 	
-	l_recvSysStatus.recvTime = 0;
-	l_recvRunStatus.recvTime = 0;
-	l_recvExtIo.recvTime = 0;
-	l_recvEncoder01.recvTime = 0;
-	l_recvEncoder23.recvTime = 0;
-	l_recvMdtemp.recvTime = 0;
-	l_recvMdStatus.recvTime = 0;
-	l_recvMotorOut0.recvTime = 0;
-	l_recvMotorOut1.recvTime = 0;
-	l_recvMotorOut2.recvTime = 0;
-	l_recvMotorOut3.recvTime = 0;
-	l_recvSbus0.recvTime = 0;
-	l_recvSbus1.recvTime = 0;
-	l_recvSbus2.recvTime = 0;
-	l_recvSbus3.recvTime = 0;
-	
-	l_recvBumperBrake.recvTime = 0;
-	
-	for(int j = 0; j < 6; j++){
-		l_recvFwdKinematics[j].recvTime = 0;
-		l_recvInvKinematics[j].recvTime = 0;
-	}
-	
+	// 受信バッファを全て0クリア(recvFlag=false, recvTime=0, msg=0)
+	memset(&l_recvSysStatus, 0, sizeof(l_recvSysStatus));
+	memset(&l_recvRunStatus, 0, sizeof(l_recvRunStatus));
+	memset(&l_recvExtIo, 0, sizeof(l_recvExtIo));
+	memset(&l_recvEncoder01, 0, sizeof(l_recvEncoder01));
+	memset(&l_recvEncoder23, 0, sizeof(l_recvEncoder23));
+	memset(&l_recvMdtemp, 0, sizeof(l_recvMdtemp));
+	memset(&l_recvMdStatus, 0, sizeof(l_recvMdStatus));
+	memset(&l_recvMotorOut0, 0, sizeof(l_recvMotorOut0));
+	memset(&l_recvMotorOut1, 0, sizeof(l_recvMotorOut1));
+	memset(&l_recvMotorOut2, 0, sizeof(l_recvMotorOut2));
+	memset(&l_recvMotorOut3, 0, sizeof(l_recvMotorOut3));
+	memset(&l_recvSbus0, 0, sizeof(l_recvSbus0));
+	memset(&l_recvSbus1, 0, sizeof(l_recvSbus1));
+	memset(&l_recvSbus2, 0, sizeof(l_recvSbus2));
+	memset(&l_recvSbus3, 0, sizeof(l_recvSbus3));
+
+	memset(&l_recvBumperBrake, 0, sizeof(l_recvBumperBrake));
+
+	memset(l_recvFwdKinematics, 0, sizeof(l_recvFwdKinematics));
+	memset(l_recvInvKinematics, 0, sizeof(l_recvInvKinematics));
+
 }
 
 // 初期化関数
@@ -77,21 +83,27 @@ Crst01a::Crst01a(void):iTimer0(0){
 bool Crst01a::Init(void){
 	
 	if(false == l_initFlg){
-	
+
+		// note：CRST01Aが起動してから最初の500msは受信処理をしないため待つ必要がある。
+		delay(500);
+		
 		SERIAL_CRST01A.setFIFOSize(256);  // 256バイトに変更
 		SERIAL_CRST01A.begin(BAUD_RATE, SERIAL_8N1);		// 車両コントローラとの通信
-	
+
 		// 定期割り込み設定
 		if(!(iTimer0.attachInterruptInterval(TIMER_CYCLE, TimerHandler0))){
 			return false;
 		}
-		
+
+		// 初回のみ初期化する。
+		// 複数クラスのInit()が連続で呼ばれても、先に積んだ送信バッファ(定期送信設定等)を
+		// クリアしないよう、初回のみリセットする。
+		l_dataId = 0;
+		l_sendBufCount = 0;
+
 		l_initFlg = true;
 	}
-	
-	l_dataId = 0;
-	l_sendBufCount = 0;
-	
+
 	return true;
 }
 
@@ -352,7 +364,7 @@ bool Crst01a::SaveParamReq(uint32_t timeout){
 			return ret;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -794,14 +806,16 @@ void Crst01a::SetInvKinematics(float *data){
 // 　　　motorDriverError：モータドライバエラー状態の格納先
 // 　　　DriverVoltage：現在の電源電圧 (0.1V単位)
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, uint8_t *motorDriverError, uint16_t *DriverVoltage, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, uint8_t *motorDriverError, uint16_t *DriverVoltage, uint32_t *recvTime){
 
 	*controllerStatus = l_recvSysStatus.msg.data[0];
 	*controllerError = l_recvSysStatus.msg.data[1];
 	*motorDriverError = l_recvSysStatus.msg.data[2];
 	*DriverVoltage = *(uint16_t*)(&l_recvSysStatus.msg.data[6]);
 	*recvTime = l_recvSysStatus.recvTime;
+
+	return l_recvSysStatus.recvFlag;
 }
 
 // 走行状態読み出し(0x81)
@@ -810,13 +824,15 @@ void Crst01a::GetSysStatus(uint8_t *controllerStatus, uint8_t *controllerError, 
 // 　　　ySpeed：Y方向速度格納先
 // 　　　yawSpeed：旋回速度格納先
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpeed, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpeed, uint32_t *recvTime){
 
 	*xSpeed = *(int16_t*)(&l_recvRunStatus.msg.data[0]);
 	*ySpeed = *(int16_t*)(&l_recvRunStatus.msg.data[2]);
 	*yawSpeed = *(int16_t*)(&l_recvRunStatus.msg.data[4]);
 	*recvTime = l_recvRunStatus.recvTime;
+
+	return l_recvRunStatus.recvFlag;
 }
 
 // 外部IO読み出し(0x84)
@@ -825,21 +841,23 @@ void Crst01a::GetReadRunStatus(int16_t *xSpeed, int16_t *ySpeed, int16_t *yawSpe
 // 　　　towerlightControl：タワーライト状態格納先
 // 　　　in4Bit：4bit入力状態格納先
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetExtIo(uint8_t *headlightControl, uint8_t *towerlightControl, uint8_t *in4Bit, uint32_t *recvTime){
 
 	*headlightControl = l_recvExtIo.msg.data[0];
 	*towerlightControl = l_recvExtIo.msg.data[1];
 	*in4Bit = l_recvExtIo.msg.data[2];
 	*recvTime = l_recvExtIo.recvTime;
+
+	return l_recvExtIo.recvFlag;
 }
 
 // モータエンコーダ読み出し(0x88, 0x89)
 // モータ0～3のエンコーダカウント値を取得します。
 // 引数：motorEncoder：4つのエンコーダ値を格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime){
+// 戻り値：全電文(0x88,0x89)を受信していればtrue、未受信があればfalse
+bool Crst01a::GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime){
 
 	uint32_t now = millis();
 
@@ -847,49 +865,55 @@ void Crst01a::GetEncoder(uint32_t *motorEncoder, uint32_t *recvTime){
 	motorEncoder[1] = *(uint32_t*)(&l_recvEncoder01.msg.data[4]);
 	motorEncoder[2] = *(uint32_t*)(&l_recvEncoder23.msg.data[0]);
 	motorEncoder[3] = *(uint32_t*)(&l_recvEncoder23.msg.data[4]);
-	
+
 	// 一番遅いタイムスタンプを返す
 	*recvTime = l_recvEncoder01.recvTime;
 	if((now - *recvTime) < (now - l_recvEncoder23.recvTime)){
 		*recvTime = l_recvEncoder23.recvTime;
 	}
+
+	return (l_recvEncoder01.recvFlag && l_recvEncoder23.recvFlag);
 }
 
 // モータドライバ温度読み出し (0x8C)
 // モータドライバ0～3の温度を取得します。
 // 引数：motorTemp：4つの温度値を格納する配列 (℃)
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetMdTemp(uint16_t *motorTemp, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetMdTemp(uint16_t *motorTemp, uint32_t *recvTime){
 
 	motorTemp[0] = *(uint16_t*)(&l_recvMdtemp.msg.data[0]);
 	motorTemp[1] = *(uint16_t*)(&l_recvMdtemp.msg.data[2]);
 	motorTemp[2] = *(uint16_t*)(&l_recvMdtemp.msg.data[4]);
 	motorTemp[3] = *(uint16_t*)(&l_recvMdtemp.msg.data[6]);
 	*recvTime = l_recvMdtemp.recvTime;
+
+	return l_recvMdtemp.recvFlag;
 }
 
 // モータドライバ状態読み出し (0x8E)
 // モータドライバから受信したエラーコードを取得します。
 // 引数：motorErr：4つのエラーコードを格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetMdStatus(uint16_t *motorErr, uint32_t *recvTime){
+// 戻り値：一度でも受信していればtrue、未受信ならfalse
+bool Crst01a::GetMdStatus(uint16_t *motorErr, uint32_t *recvTime){
 
 	motorErr[0] = *(uint16_t*)(&l_recvMdStatus.msg.data[0]);
 	motorErr[1] = *(uint16_t*)(&l_recvMdStatus.msg.data[2]);
 	motorErr[2] = *(uint16_t*)(&l_recvMdStatus.msg.data[4]);
 	motorErr[3] = *(uint16_t*)(&l_recvMdStatus.msg.data[6]);
 	*recvTime = l_recvMdStatus.recvTime;
+
+	return l_recvMdStatus.recvFlag;
 }
 
 // モータ出力読み出し (0x90-0x93)
 // モータ0～3の角速度とトルクを取得します。
 // 引数：motorSpeed：4つの角速度(rpm)を格納する配列
-// 　　　motorTorque：4つのトルク(A)を格納する配列
+// 　　　motorTorque：4つのトルク(0.01N・m)を格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvTime){
+// 戻り値：全電文(0x90-0x93)を受信していればtrue、未受信があればfalse
+bool Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvTime){
 
 	uint32_t now = millis();
 
@@ -901,7 +925,7 @@ void Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvT
 	motorTorque[2] = *(float*)(&l_recvMotorOut2.msg.data[4]);
 	motorSpeed[3] = *(float*)(&l_recvMotorOut3.msg.data[0]);
 	motorTorque[3] = *(float*)(&l_recvMotorOut3.msg.data[4]);
-	
+
 	// 一番遅いタイムスタンプを返す
 	*recvTime = l_recvMotorOut0.recvTime;
 	if((now - *recvTime) < (now - l_recvMotorOut1.recvTime)){
@@ -913,14 +937,16 @@ void Crst01a::GetMotorOut(float *motorSpeed, float *motorTorque, uint32_t *recvT
 	if((now - *recvTime) < (now - l_recvMotorOut3.recvTime)){
 		*recvTime = l_recvMotorOut3.recvTime;
 	}
+
+	return (l_recvMotorOut0.recvFlag && l_recvMotorOut1.recvFlag && l_recvMotorOut2.recvFlag && l_recvMotorOut3.recvFlag);
 }
 
 // SBUS読み出し (0xB0-0xB3)
 // SBUS 16チャンネル分の信号値を取得します。
 // 引数：sbusVal：16チャンネルの信号値を格納する配列
 // 　　　recvTime：受信時刻(ms)
-// 戻り値：なし
-void Crst01a::GetSbus(uint16_t *sbusVal, uint32_t *recvTime){
+// 戻り値：全電文(0xB0-0xB3)を受信していればtrue、未受信があればfalse
+bool Crst01a::GetSbus(uint16_t *sbusVal, uint32_t *recvTime){
 
 	uint32_t now = millis();
 
@@ -952,6 +978,8 @@ void Crst01a::GetSbus(uint16_t *sbusVal, uint32_t *recvTime){
 	if((now - *recvTime) < (now - l_recvSbus3.recvTime)){
 		*recvTime = l_recvSbus3.recvTime;
 	}
+
+	return (l_recvSbus0.recvFlag && l_recvSbus1.recvFlag && l_recvSbus2.recvFlag && l_recvSbus3.recvFlag);
 }
 
 // データ定期送信読み出し(0xC0)
@@ -998,7 +1026,7 @@ bool Crst01a::GetDataPeriodic(uint8_t *frequency, uint8_t *data,uint32_t timeout
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1032,7 +1060,7 @@ bool Crst01a::GetMaxSpeed(uint16_t *xSpeed, uint16_t *ySpeed, uint16_t *yawSpeed
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1064,7 +1092,7 @@ bool Crst01a::GetBumperBrake(uint8_t *bumperConfig, uint8_t *brakeConfig, uint32
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1128,7 +1156,7 @@ bool Crst01a::GetVersion(uint8_t *ver0, uint8_t *ver1, uint8_t *ver2, uint32_t t
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1161,7 +1189,7 @@ bool Crst01a::GetVoltageConfig(uint16_t *minVol, uint16_t *maxVol, uint32_t time
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1192,7 +1220,7 @@ bool Crst01a::GetMdConfig0(uint16_t *existFlag, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1223,7 +1251,7 @@ bool Crst01a::GetMdConfig1(float *maxGbSpeed, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1254,7 +1282,7 @@ bool Crst01a::GetMdConfig2(float *stopRpm, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1287,7 +1315,7 @@ bool Crst01a::GetMdConfig3(float *maxTorque, float *startTorque, uint32_t timeou
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1320,7 +1348,7 @@ bool Crst01a::GetMdConfig4(float *recoveryTorque, float *torqueAddRatio, uint32_
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1357,7 +1385,7 @@ bool Crst01a::GetMdConfig5(uint16_t *rampA, uint16_t *rampB, uint16_t *rampC, ui
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1394,7 +1422,7 @@ bool Crst01a::GetRcConfig0(uint16_t *center, uint16_t *min, uint16_t *max, uint1
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1427,7 +1455,7 @@ bool Crst01a::GetRcConfig1(uint16_t *lowTh, uint16_t *highTh, uint32_t timeout){
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1470,7 +1498,7 @@ bool Crst01a::GetRcConfig23(uint8_t* movementXChannel, uint8_t* movementYChannel
 			break;;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1490,7 +1518,7 @@ bool Crst01a::GetRcConfig23(uint8_t* movementXChannel, uint8_t* movementYChannel
 			return true;
 		}
 		
-		if(millis() > (now + timeout)){
+		if((millis() - now) >= timeout){
 			return false;		// タイムアウト
 		}
 	}
@@ -1537,7 +1565,7 @@ bool Crst01a::GetFwdKinematics(float *data, uint32_t timeout){
 				restore_interrupts(irq_state);
 				break;
 			}
-			if(millis() > (now + timeout)){
+			if((millis() - now) >= timeout){
 				return false;		// タイムアウト
 			}
 		}
@@ -1586,7 +1614,7 @@ bool Crst01a::GetInvKinematics(float *data, uint32_t timeout){
 				restore_interrupts(irq_state);
 				break;
 			}
-			if(millis() > (now + timeout)){
+			if((millis() - now) >= timeout){
 				return false;		// タイムアウト
 			}
 		}
@@ -1599,7 +1627,7 @@ bool Crst01a::GetInvKinematics(float *data, uint32_t timeout){
 // 引数：t：タイマー構造体ポインタ
 // 戻り値：true (継続)
 bool Crst01a::TimerHandler0(struct repeating_timer *t){
-	crst01a.SetCmd();		// 車両コントローラへの電文送信
+	crst01a.SetCmd();		// 車両コントローラへの電文送信(定期再送・ヘルスチェックを含む)
 	crst01a.GetCmd();		// 車両コントローラから電文の読み出し
 	return true;
 }
@@ -1612,19 +1640,31 @@ bool Crst01a::TimerHandler0(struct repeating_timer *t){
 // 戻り値：なし
 void Crst01a::SetCmd(void){
 	uint8_t	i;
-	
-	// 送信データがないならタイムアウト防止用にエラー解除(0x00なのでなにも解除しない)
-	if(0 == l_sendBufCount){
+	uint32_t now = millis();
+
+	// 再送(有効時)：1000msごとに定期送信要求(l_reqCycleMsg)を無条件で送信バッファへ積む
+	if(true == l_cycleResend){
+		if((now - l_lastCycleResendTime) >= CYCLE_RESEND_INTERVAL){
+			l_lastCycleResendTime = now;
+			l_reqCycleMsg.dataId = CalcAddDataId();
+			l_reqCycleMsg.checkSum = CalcCheckSum(&l_reqCycleMsg);	// チェックサムをセット
+			SendData(&l_reqCycleMsg);
+		}
+	}
+
+	// ヘルスチェック(有効時)：このtickで他に送るものが無い(アイドル)時のみ送信
+	// エラー解除(0x00なのでなにも解除しない)を送り、車両コントローラのタイムアウトを防ぐ
+	if((true == l_healthCheckSend) && (0 == l_sendBufCount)){
 		ClearDriverError(0x00);
 	}
-	
+
 	// 送信バッファ内のデータを送信
 	for(i = 0;i < l_sendBufCount;i++){
 		if(CRST_PACKET_LEN != SERIAL_CRST01A.write((uint8_t*)&l_sendBuf[i], CRST_PACKET_LEN)){
 			break;
 		}
 	}
-	
+
 	l_sendBufCount = 0;
 }
 
@@ -1660,66 +1700,82 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_SYS_STATUS:		// システムステータス読み出し
 						l_recvSysStatus.msg = buf;
 						l_recvSysStatus.recvTime = millis();
+						l_recvSysStatus.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_RUN_STATUS:		// 走行状態読み出し
 						l_recvRunStatus.msg = buf;
 						l_recvRunStatus.recvTime = millis();
+						l_recvRunStatus.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_EXT_IO:			// 外部IO読み出し
 						l_recvExtIo.msg = buf;
 						l_recvExtIo.recvTime = millis();
+						l_recvExtIo.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_ENCODER_01:		// モータエンコーダ読み出し (0, 1)
 						l_recvEncoder01.msg = buf;
 						l_recvEncoder01.recvTime = millis();
+						l_recvEncoder01.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_ENCODER_23:		// モータエンコーダ読み出し (2, 3)
 						l_recvEncoder23.msg = buf;
 						l_recvEncoder23.recvTime = millis();
+						l_recvEncoder23.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MD_TEMP:		// モータドライバ温度読み出し
 						l_recvMdtemp.msg = buf;
 						l_recvMdtemp.recvTime = millis();
+						l_recvMdtemp.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MD_STATUS:		// モータドライバ状態読み出し
 						l_recvMdStatus.msg = buf;
 						l_recvMdStatus.recvTime = millis();
+						l_recvMdStatus.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_0:	// モータ出力読み出し (0)
 						l_recvMotorOut0.msg = buf;
 						l_recvMotorOut0.recvTime = millis();
+						l_recvMotorOut0.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_1:	// モータ出力読み出し (1)
 						l_recvMotorOut1.msg = buf;
 						l_recvMotorOut1.recvTime = millis();
+						l_recvMotorOut1.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_2:	// モータ出力読み出し (2)
 						l_recvMotorOut2.msg = buf;
 						l_recvMotorOut2.recvTime = millis();
+						l_recvMotorOut2.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_MOTOR_OUT_3:	// モータ出力読み出し (3)
 						l_recvMotorOut3.msg = buf;
 						l_recvMotorOut3.recvTime = millis();
+						l_recvMotorOut3.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_0:			// SBUS読み出し (Ch 1-4)
 						l_recvSbus0.msg = buf;
 						l_recvSbus0.recvTime = millis();
+						l_recvSbus0.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_1:			// SBUS読み出し (Ch 5-8)
 						l_recvSbus1.msg = buf;
 						l_recvSbus1.recvTime = millis();
+						l_recvSbus1.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_2:			// SBUS読み出し (Ch 9-12)
 						l_recvSbus2.msg = buf;
 						l_recvSbus2.recvTime = millis();
+						l_recvSbus2.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_SBUS_3:			// SBUS読み出し (Ch 13-16)
 						l_recvSbus3.msg = buf;
 						l_recvSbus3.recvTime = millis();
+						l_recvSbus3.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_BUMPER_BRAKE:	// バンパー、ブレーキ設定読み出し (0x44)
 						l_recvBumperBrake.msg = buf;
 						l_recvBumperBrake.recvTime = millis();
+						l_recvBumperBrake.recvFlag = true;
 						break;
 					case CRST_FUNC_READ_FWD_KINEMATICS_0:
 					case CRST_FUNC_READ_FWD_KINEMATICS_1:
@@ -1729,6 +1785,7 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_FWD_KINEMATICS_5:
 						l_recvFwdKinematics[buf.funcCode - CRST_FUNC_READ_FWD_KINEMATICS_0].msg = buf;
 						l_recvFwdKinematics[buf.funcCode - CRST_FUNC_READ_FWD_KINEMATICS_0].recvTime = millis();
+						l_recvFwdKinematics[buf.funcCode - CRST_FUNC_READ_FWD_KINEMATICS_0].recvFlag = true;
 						break;
 					case CRST_FUNC_READ_INV_KINEMATICS_0:
 					case CRST_FUNC_READ_INV_KINEMATICS_1:
@@ -1738,6 +1795,7 @@ void Crst01a::GetCmd(void){
 					case CRST_FUNC_READ_INV_KINEMATICS_5:
 						l_recvInvKinematics[buf.funcCode - CRST_FUNC_READ_INV_KINEMATICS_0].msg = buf;
 						l_recvInvKinematics[buf.funcCode - CRST_FUNC_READ_INV_KINEMATICS_0].recvTime = millis();
+						l_recvInvKinematics[buf.funcCode - CRST_FUNC_READ_INV_KINEMATICS_0].recvFlag = true;
 						break;
 					default:
 						break;
@@ -1754,6 +1812,23 @@ void Crst01a::GetCmd(void){
 			break;	// 1電文受信していないので処理をしない
 		}
 	}
+}
+
+// ヘルスチェック(アイドル時の定期送信)の有効/無効切替
+// SetCmd()で送信バッファが空(アイドル)の時に、車両コントローラのタイムアウト防止用の
+// エラー解除(0x00)を送信するかを切り替えます。
+// 引数：enable：true：送信する(デフォルト), false：送信しない
+// 戻り値：なし
+void Crst01a::SetHealthCheckSend(bool enable){
+	l_healthCheckSend = enable;
+}
+
+// 定期送信要求の定期再送の有効/無効切替
+// 有効時はSetCmd()で1000msごとに定期送信要求(l_reqCycleMsg)を無条件で再送します。
+// 引数：enable：true：再送する(デフォルト), false：再送しない
+// 戻り値：なし
+void Crst01a::SetCycleResend(bool enable){
+	l_cycleResend = enable;
 }
 
 // 受信待ちフラグの取得関数

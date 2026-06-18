@@ -59,16 +59,19 @@ uint32_t CugoCommon::GetErr(void){
 	uint32_t recvTime;
 	uint32_t ret = 0;
 	
-	crst01a.GetSysStatus(&controllerStatus, &controllerError, &motorDriverError, &driverVoltage, &recvTime);
-	ret |= controllerError;
-	ret |= motorDriverError << 8;
-	
-	
-	if(RECV_TIMEOUT < (millis() - recvTime)){
-		// エラー情報を最後に受信したのが古すぎる
+	bool received = crst01a.GetSysStatus(&controllerStatus, &controllerError, &motorDriverError, &driverVoltage, &recvTime);
+
+	if(received){
+		// 受信済みの場合のみエラービットを反映する(未受信時はmsgが未初期化でゴミ値のため)
+		ret |= controllerError;
+		ret |= motorDriverError << 8;
+	}
+
+	if(!received || (RECV_TIMEOUT < (millis() - recvTime))){
+		// 未受信、またはエラー情報を最後に受信したのが古すぎる
 		ret |= CUGO_ERR_CMD_TIMEOUT;
 	}
-	
+
 	return ret;
 }
 
@@ -95,14 +98,16 @@ bool CugoCommon::GetVoltage(uint16_t *driverVoltage){
 	uint8_t motorDriverError;
 	uint32_t recvTime;
 	
-	crst01a.GetSysStatus(&controllerStatus, &controllerError, &motorDriverError, driverVoltage, &recvTime);
-	
-	
+	if(!crst01a.GetSysStatus(&controllerStatus, &controllerError, &motorDriverError, driverVoltage, &recvTime)){
+		// 未受信
+		return false;
+	}
+
 	if(RECV_TIMEOUT < (millis() - recvTime)){
 		// エラー情報を最後に受信したのが古すぎる
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -174,7 +179,7 @@ bool CugoCommon::GetControlMode(uint8_t *mode){
 	uint16_t driverVoltage;
 	uint32_t recvTime;
 	
-	crst01a.GetSysStatus(&controllerStatus, &controllerError, &motorDriverError, &driverVoltage, &recvTime);
+	bool received = crst01a.GetSysStatus(&controllerStatus, &controllerError, &motorDriverError, &driverVoltage, &recvTime);
 	if(CUGO_STS_CMD_MODE & controllerStatus){
 		// コマンドモード
 		*mode = CUGO_CMD_MODE;
@@ -183,12 +188,12 @@ bool CugoCommon::GetControlMode(uint8_t *mode){
 		// RCモード
 		*mode = CUGO_RC_MODE;
 	}
-	
-	if(RECV_TIMEOUT < (millis() - recvTime)){
-		// 最後に受信したのが古すぎる
+
+	if(!received || (RECV_TIMEOUT < (millis() - recvTime))){
+		// 未受信、または最後に受信したのが古すぎる
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -243,6 +248,181 @@ bool CugoCommon::GetVoltageConfig(uint16_t *pDriverMinVoltage, uint16_t *pDriver
 bool CugoCommon::GetVersion(uint8_t *pVer0, uint8_t *pVer1, uint8_t *pVer2){
 	
 	return crst01a.GetVersion(pVer0, pVer1, pVer2, 500);
+}
+
+
+// 緊急減速
+// 現在の走行を緊急減速で停止させる。減速のランプはランプ設定(SetSpeedRamp)の緊急減速時の設定に従う。
+// 引数：なし
+// 戻り値：なし
+void CugoCommon::EmergencyDeceleration(void){
+
+	crst01a.SetEmergencyDeceleration();
+}
+
+
+// バンパー、ブレーキ設定
+// バンパーの論理・停止有効設定と自動ブレーキの設定を行う。
+// 引数：bumperConfig：バンパーの設定。以下のビットの論理和で指定する。
+//                     CUGO_BUMPER0_POLARITY：バンパー0の論理反転
+//                     CUGO_BUMPER1_POLARITY：バンパー1の論理反転
+//                     CUGO_BUMPER_STOP_ENABLE：バンパー接触で停止
+// 　　　brakeConfig：自動ブレーキの設定。
+//                    CUGO_AUTO_BRAKE_ENABLE：自動ブレーキ有効
+// 戻り値：なし
+void CugoCommon::SetBumperBrake(uint8_t bumperConfig, uint8_t brakeConfig){
+
+	crst01a.SetBumperBrake(bumperConfig, brakeConfig);
+}
+
+
+// ブレーキの閾値設定
+// 自動ブレーキ有効時に停止と判断する速度の閾値を設定する。
+// 引数：judgeToStopRpm：停止と判断する閾値 (rpm)
+// 戻り値：なし
+void CugoCommon::SetBrakeThreshold(float judgeToStopRpm){
+
+	crst01a.SetMdConfig2(judgeToStopRpm);
+}
+
+
+// ランプ設定
+// 各減速要因に応じた減速ランプ(RPM/s)とその割り当てを設定する。
+// 引数：speedRampA：ランプ設定A (RPM/s)
+// 　　　speedRampB：ランプ設定B (RPM/s)
+// 　　　speedRampC：ランプ設定C (RPM/s)
+// 　　　speedRampSelect：各減速要因でA/B/Cどのランプを使用するかの選択。
+//                        CUGO_RAMP_SELECT_x を CUGO_RAMP_SHIFT_xxx でシフトした値の論理和で指定する。
+// 戻り値：なし
+void CugoCommon::SetSpeedRamp(uint16_t speedRampA, uint16_t speedRampB, uint16_t speedRampC, uint16_t speedRampSelect){
+
+	crst01a.SetMdConfig5(speedRampA, speedRampB, speedRampC, speedRampSelect);
+}
+
+
+// エンコーダリセット
+// 車両コントローラが保持しているモータエンコーダのカウント値を0にリセットする。
+// 引数：なし
+// 戻り値：なし
+void CugoCommon::ClearEncoderCount(void){
+
+	crst01a.ClearEncoderCount();
+}
+
+
+// RC設定(0x58)
+// SBUS信号のセンター・最小・最大値・不感帯を設定する。
+// 引数：rcCenterValue：SBUS中央値
+// 　　　rcMinValue：SBUS最小値
+// 　　　rcMaxValue：SBUS最大値
+// 　　　rcCenterMargin：不感帯幅(例:10の場合は中央値±10の範囲が不感帯)
+// 戻り値：なし
+void CugoCommon::SetRcConfig0(uint16_t rcCenterValue, uint16_t rcMinValue, uint16_t rcMaxValue, uint16_t rcCenterMargin){
+
+	crst01a.SetRcConfig0(rcCenterValue, rcMinValue, rcMaxValue, rcCenterMargin);
+}
+
+
+// RC設定(0x59)
+// SBUS信号でスイッチをON/OFF判定する閾値を設定する。
+// 引数：rcLowSwitchingThreshold：スイッチOFFとする閾値
+// 　　　rcHighSwitchingThreshold：スイッチONとする閾値
+// 戻り値：なし
+void CugoCommon::SetRcConfig1(uint16_t rcLowSwitchingThreshold, uint16_t rcHighSwitchingThreshold){
+
+	crst01a.SetRcConfig1(rcLowSwitchingThreshold, rcHighSwitchingThreshold);
+}
+
+
+// RC設定(0x5A,0x5B)
+// 各種操作に割り当てるSBUSチャンネルを設定する。
+// 引数：movementXChannel：X方向移動のチャンネル (0-15)
+// 　　　movementYChannel：Y方向移動のチャンネル (0-15)
+// 　　　movementYawChannel：旋回方向移動のチャンネル (0-15)
+// 　　　controlModeSwitchChannel：モード切替のチャンネル (0-15)
+// 　　　brakeControlChannel：自動ブレーキ制御のチャンネル (0-15)
+// 　　　errorAndBumperResetChannel：エラー・バンパー解除のチャンネル (0-15)
+// 　　　headlight0Channel：ヘッドライト0制御のチャンネル (0-15)
+// 　　　headlight1Channel：ヘッドライト1制御のチャンネル (0-15)
+// 戻り値：なし
+void CugoCommon::SetRcConfig23(uint8_t movementXChannel, uint8_t movementYChannel, uint8_t movementYawChannel, uint8_t controlModeSwitchChannel, uint8_t brakeControlChannel, uint8_t errorAndBumperResetChannel, uint8_t headlight0Channel, uint8_t headlight1Channel){
+
+	crst01a.SetRcConfig23(movementXChannel, movementYChannel, movementYawChannel, controlModeSwitchChannel, brakeControlChannel, errorAndBumperResetChannel, headlight0Channel, headlight1Channel);
+}
+
+
+// バンパー、ブレーキ設定取得
+// SetBumperBrakeで設定したバンパー・ブレーキ設定を取得する。
+// 引数：pBumperConfig：バンパー設定の格納先
+// 　　　pBrakeConfig：ブレーキ設定の格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetBumperBrake(uint8_t *pBumperConfig, uint8_t *pBrakeConfig){
+
+	return crst01a.GetBumperBrake(pBumperConfig, pBrakeConfig);
+}
+
+
+// ブレーキの閾値設定取得
+// SetBrakeThresholdで設定した停止判断の閾値を取得する。
+// 引数：pJudgeToStopRpm：停止と判断する閾値 (rpm) の格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetBrakeThreshold(float *pJudgeToStopRpm){
+
+	return crst01a.GetMdConfig2(pJudgeToStopRpm);
+}
+
+
+// ランプ設定取得
+// SetSpeedRampで設定したランプ設定を取得する。
+// 引数：pSpeedRampA：ランプ設定A (RPM/s) の格納先
+// 　　　pSpeedRampB：ランプ設定B (RPM/s) の格納先
+// 　　　pSpeedRampC：ランプ設定C (RPM/s) の格納先
+// 　　　pSpeedRampSelect：各減速要因のランプ選択の格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetSpeedRamp(uint16_t *pSpeedRampA, uint16_t *pSpeedRampB, uint16_t *pSpeedRampC, uint16_t *pSpeedRampSelect){
+
+	return crst01a.GetMdConfig5(pSpeedRampA, pSpeedRampB, pSpeedRampC, pSpeedRampSelect);
+}
+
+
+// RC設定取得(0xD8)
+// SetRcConfig0で設定したSBUSのセンター・最小・最大値・不感帯を取得する。
+// 引数：pRcCenterValue：SBUS中央値の格納先
+// 　　　pRcMinValue：SBUS最小値の格納先
+// 　　　pRcMaxValue：SBUS最大値の格納先
+// 　　　pRcCenterMargin：不感帯幅の格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetRcConfig0(uint16_t *pRcCenterValue, uint16_t *pRcMinValue, uint16_t *pRcMaxValue, uint16_t *pRcCenterMargin){
+
+	return crst01a.GetRcConfig0(pRcCenterValue, pRcMinValue, pRcMaxValue, pRcCenterMargin);
+}
+
+
+// RC設定取得(0xD9)
+// SetRcConfig1で設定したスイッチON/OFF閾値を取得する。
+// 引数：pRcLowSwitchingThreshold：スイッチOFFとする閾値の格納先
+// 　　　pRcHighSwitchingThreshold：スイッチONとする閾値の格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetRcConfig1(uint16_t *pRcLowSwitchingThreshold, uint16_t *pRcHighSwitchingThreshold){
+
+	return crst01a.GetRcConfig1(pRcLowSwitchingThreshold, pRcHighSwitchingThreshold);
+}
+
+
+// RC設定取得(0xDA,0xDB)
+// SetRcConfig23で設定した各操作のSBUSチャンネル割当を取得する。
+// 引数：pMovementXChannel：X方向移動のチャンネル格納先
+// 　　　pMovementYChannel：Y方向移動のチャンネル格納先
+// 　　　pMovementYawChannel：旋回方向移動のチャンネル格納先
+// 　　　pControlModeSwitchChannel：モード切替のチャンネル格納先
+// 　　　pBrakeControlChannel：自動ブレーキ制御のチャンネル格納先
+// 　　　pErrorAndBumperResetChannel：エラー・バンパー解除のチャンネル格納先
+// 　　　pHeadlight0Channel：ヘッドライト0制御のチャンネル格納先
+// 　　　pHeadlight1Channel：ヘッドライト1制御のチャンネル格納先
+// 戻り値：成功時 true、タイムアウト時 false
+bool CugoCommon::GetRcConfig23(uint8_t *pMovementXChannel, uint8_t *pMovementYChannel, uint8_t *pMovementYawChannel, uint8_t *pControlModeSwitchChannel, uint8_t *pBrakeControlChannel, uint8_t *pErrorAndBumperResetChannel, uint8_t *pHeadlight0Channel, uint8_t *pHeadlight1Channel){
+
+	return crst01a.GetRcConfig23(pMovementXChannel, pMovementYChannel, pMovementYawChannel, pControlModeSwitchChannel, pBrakeControlChannel, pErrorAndBumperResetChannel, pHeadlight0Channel, pHeadlight1Channel, 200);
 }
 
 
