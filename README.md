@@ -413,6 +413,7 @@ cugoCommon.GetControlMode(&nowMode);   // 現在の動作モードがnowModeに�
 | `CUGO_ERR_MD_OVERCURRENT` | bit8 | モータドライバ過電流 |
 | `CUGO_ERR_MD_VOLTERROR` | bit9 | モータドライバ電圧異常 |
 | `CUGO_ERR_MD_OVERTEMP` | bit10 | モータドライバ温度異常 |
+| `CUGO_ERR_MD_OTHERERROR` | bit11 | モータドライバその他エラー |
 | `CUGO_ERR_MD_CAN_TIMEOUTx` | bit12-15 | モータドライバ x との通信エラー |
 | `CUGO_ERR_CMD_TIMEOUT` | bit16 | 車両コントローラとの通信タイムアウト |
 
